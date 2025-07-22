@@ -1,5 +1,6 @@
 ///|
-typealias @span.(Span, Spanned)
+typealias @span.Span
+typealias @span.Spanned
 
 ///|
 typealias Array[Spanned[Chunk]] as Chunks
@@ -308,8 +309,8 @@ pub fn split_token_lists_with_kw(
       let mut prev = splits.head().unwrap()
       let mut cur = ""
       for split in splits {
-        if prev.char_at(prev.length() - 1).is_whitespace() &&
-          prev.char_at(0).is_whitespace() {
+        if prev.get_char(prev.length() - 1).unwrap().is_whitespace() &&
+          prev.get_char(0).unwrap().is_whitespace() {
           cur += prev
           let end = if chunk.is_detached() {
             @int.max_value
@@ -423,7 +424,12 @@ pub fn count_num_char(chunks : Chunks, c : Char) -> Int {
   })
   .fold(init=0, (count, elem) => count + elem)
 }
-
+pub fn[T : Type] parse(chunks : Chunks) -> T raise TypeError{
+  T::from_chunks(chunks)
+}
+fn String::split_at(self : String, index : Int) -> (String, String) {
+  (self.substring(end=index), self.substring(start=index))
+}
 ///|
 fn String::trim_space_start(self : String) -> String {
   let s = StringBuilder::new()
@@ -437,9 +443,7 @@ fn String::trim_space_end(self : String) -> String {
 }
 
 ///|
-fn String::split_at(self : String, index : Int) -> (String, String) {
-  (self.substring(end=index), self.substring(start=index))
-}
+
 
 ///|
 fn Int::saturating_add(self : Int, len : Int) -> Int {

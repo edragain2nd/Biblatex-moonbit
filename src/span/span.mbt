@@ -3,7 +3,6 @@ pub(all) struct Spanned[T] {
   v : T
   span : Span
 }derive(Show,Eq)
-
 ///|
 pub fn[T] Spanned::new(v : T, span : Span) -> Spanned[T] {
   { v, span }
@@ -31,3 +30,7 @@ pub(all) struct Span {
   start : Int
   end : Int
 } derive(Show,Eq)
+
+pub fn Span::is_empty(self : Span) -> Bool{
+  not(self.start < self.end)
+}

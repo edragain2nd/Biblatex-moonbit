@@ -8,5 +8,5 @@ typealias Array[Spanned[Chunk]] as Chunks
 typealias @span.Span
 
 ///|
-typealias @chunk.Chunk
+typealias @types.Chunk
 

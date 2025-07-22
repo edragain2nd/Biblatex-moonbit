@@ -243,7 +243,7 @@ fn ContentParser::command(self : ContentParser) -> String raise ParseError {
       arg.substring(start=0, end=arg.length() - brace),
       idx,
     ).parse()
-    let arg = @chunk.ChunkExt::format_verbatim(arg)
+    let arg = @types.ChunkExt::format_verbatim(arg)
     Some(arg)
   } else {
     None

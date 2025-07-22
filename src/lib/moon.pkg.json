@@ -1,7 +1,6 @@
 {"import":[
     "biblatex/types",
     "biblatex/utils",
-    "biblatex/chunk",
     "edragain2nd/unscanny",
     "biblatex/span",
     "edragain2nd/compose"
