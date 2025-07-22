@@ -1,13 +1,19 @@
+///|
+typealias @span.Span
 
 ///|
 pub(all) struct TypeError {
   span : Span
   kind : TypeErrorKind
 }
-pub impl Show for TypeError with to_string(self){
+
+///|
+pub impl Show for TypeError with to_string(self) {
   "\{self.kind} : \{self.span.start} - \{self.span.end}"
 }
-pub impl Show for TypeError with output(self , logger){
+
+///|
+pub impl Show for TypeError with output(self, logger) {
   logger.write_string(self.to_string())
 }
 
@@ -64,7 +70,4 @@ pub impl Show for TypeErrorKind with to_string(self) {
     YearZeroCE => "year 0 CE or BCE does not exist"
   }
 }
-pub(all) struct Span{
-  start : Int
-  end : Int
-}derive(Show)
+
