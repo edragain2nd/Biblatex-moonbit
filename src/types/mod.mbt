@@ -45,7 +45,7 @@ pub(all) enum TypeErrorKind {
   UnknownLangId
   /// The year 0 CE or BCE does not exist.
   YearZeroCE
-}
+}derive(Eq)
 
 ///|
 pub impl Show for TypeErrorKind with output(self, logger) {

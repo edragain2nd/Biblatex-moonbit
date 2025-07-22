@@ -75,7 +75,7 @@ pub enum ParseErrorKind {
   DuplicateKey(String)
   /// A type error occurred while trying to resolve cross-references.
   ResolutionError(TypeErrorKind)
-}
+}derive(Eq)
 
 ///|
 pub enum Token {
@@ -94,7 +94,7 @@ pub enum Token {
   Equals
   /// A decimal point: `.`.
   DecimalPoint
-}
+}derive(Eq)
 
 ///|
 impl Show for ParseErrorKind with to_string(self) {
