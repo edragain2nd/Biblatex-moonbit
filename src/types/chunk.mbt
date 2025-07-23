@@ -1,5 +1,7 @@
 ///|
 typealias @span.Span
+
+///|
 typealias @span.Spanned
 
 ///|
@@ -134,7 +136,7 @@ pub impl ChunkExt for Array[Spanned[Chunk]] with span(self) {
 ///|
 pub impl ChunkExt for Array[Spanned[Chunk]] with to_biblatex_string(
   self,
-  is_verbatim
+  is_verbatim,
 ) {
   let mut res = ""
   res += "{"
@@ -213,7 +215,7 @@ pub fn split_token_lists(vals : Chunks, keyword : String) -> Array[Chunks] {
         latest.push(
           Spanned::new(Chunk::Normal(first), { start, end: start + pos }),
         )
-        out.push(latest)
+        out.push(latest.copy())
         latest.clear()
         target = target
           .substring(start=pos + keyword.length())
@@ -242,7 +244,7 @@ pub fn split_token_lists(vals : Chunks, keyword : String) -> Array[Chunks] {
 ///   split.
 pub fn split_token_lists_with_kw(
   vals : Chunks,
-  keyword : String
+  keyword : String,
 ) -> Array[Chunks] {
   let out = []
   let latest = []
@@ -307,10 +309,11 @@ pub fn split_token_lists_with_kw(
       }
       let splits = s.split(keyword).map(s => s.to_string())
       let mut prev = splits.head().unwrap()
+      let splits = splits.drop(1)
       let mut cur = ""
       for split in splits {
         if prev.get_char(prev.length() - 1).unwrap().is_whitespace() &&
-          prev.get_char(0).unwrap().is_whitespace() {
+          split.get_char(0).unwrap().is_whitespace() {
           cur += prev
           let end = if chunk.is_detached() {
             @int.max_value
@@ -318,11 +321,26 @@ pub fn split_token_lists_with_kw(
             start + cur.length()
           }
           latest.push(Spanned::new(Chunk::Normal(cur), { start, end }))
+          cur = ""
+          sanitize_latest(latest)
+          out.push(latest.copy())
+          latest.clear()
+          start = end
+          prev = split
+          continue
         }
         cur += prev
         cur += keyword
         prev = split
       }
+      cur += prev
+      let end = if chunk.is_detached() {
+        @int.max_value
+      } else {
+        start + cur.length()
+      }
+      latest.push(Spanned::new(Chunk::Normal(cur), { start, end }))
+      cur = ""
     } else {
       latest.push(chunk)
     }
@@ -337,7 +355,7 @@ pub fn split_token_lists_with_kw(
 pub fn split_at_normal_char(
   src : Chunks,
   c : Char,
-  omit : Bool
+  omit : Bool,
 ) -> (Chunks, Chunks) {
   let mut search_result = None
   for chunk_idx, val in src.iter2() {
@@ -377,7 +395,7 @@ pub fn split_at_normal_char(
 pub fn split_values(
   src : Chunks,
   chunk_idx : Int,
-  str_idx : Int
+  str_idx : Int,
 ) -> (Chunks, Chunks) {
   let new = []
   if chunk_idx >= src.length() {
@@ -424,34 +442,10 @@ pub fn count_num_char(chunks : Chunks, c : Char) -> Int {
   })
   .fold(init=0, (count, elem) => count + elem)
 }
-pub fn[T : Type] parse(chunks : Chunks) -> T raise TypeError{
+
+///|
+pub fn[T : Type] parse(chunks : Chunks) -> T raise TypeError {
   T::from_chunks(chunks)
-}
-fn String::split_at(self : String, index : Int) -> (String, String) {
-  (self.substring(end=index), self.substring(start=index))
-}
-///|
-fn String::trim_space_start(self : String) -> String {
-  let s = StringBuilder::new()
-  s.write_iter(self.iter().drop_while(c => c.is_whitespace()))
-  s.to_string()
-}
-
-///|
-fn String::trim_space_end(self : String) -> String {
-  self.rev().trim_space_start().rev()
-}
-
-///|
-
-
-///|
-fn Int::saturating_add(self : Int, len : Int) -> Int {
-  if @int.max_value - self < len {
-    @int.max_value
-  } else {
-    self + len
-  }
 }
 
 ///|
