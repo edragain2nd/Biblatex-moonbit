@@ -23,3 +23,17 @@ fn Int::saturating_add(self : Int, len : Int) -> Int {
     self + len
   }
 }
+
+///|
+fn String::starts_with_whitespace(self : String) -> Bool {
+  if self.get_char(0) is Some(c) {
+    c.is_whitespace()
+  } else {
+    false
+  }
+}
+
+///|
+fn String::ends_with_whitespace(self : String) -> Bool {
+  self.rev().starts_with_whitespace()
+}

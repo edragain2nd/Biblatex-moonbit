@@ -209,7 +209,7 @@ pub fn split_token_lists(vals : Chunks, keyword : String) -> Array[Chunks] {
     if val.v is Normal(s) {
       let mut target = s
       let mut start = val.span.start
-      let found = target.find(keyword)
+      let mut found = target.find(keyword)
       while found is Some(pos) {
         let first = target.substring(end=pos).trim_space_end()
         latest.push(
@@ -221,6 +221,7 @@ pub fn split_token_lists(vals : Chunks, keyword : String) -> Array[Chunks] {
           .substring(start=pos + keyword.length())
           .trim_space_start()
         start += pos + keyword.length()
+        found = target.find(keyword)
       }
       latest.push(
         Spanned::new(Chunk::Normal(target), { start, end: val.span.end }),
@@ -261,16 +262,16 @@ pub fn split_token_lists_with_kw(
       let s_array = str.to_array()
       ignore(s_array.drain(0, diff))
       str = s_array.map(Char::to_string).join("")
-    }
-    if not(latest[0].is_detached()) {
-      span_start += diff
-    }
-    if not(str.is_empty()) {
       latest[0] = Spanned::new(Normal(str), {
         start: span_start,
         end: latest[0].span.end,
       })
     }
+    if not(latest[0].is_detached()) {
+      span_start += diff
+    }
+    let v = latest[0].v
+    latest[0] = Spanned::new(v, { start: span_start, end: latest[0].span.end })
     str = ""
     let mut new_len = 0
     let end = latest.length() - 1
@@ -279,16 +280,19 @@ pub fn split_token_lists_with_kw(
       str = s
       new_len = s.trim_space_end().length()
       str = str.substring(end=new_len)
-    }
-    if not(latest[end].is_detached()) {
-      span_end = latest[end].span.start + new_len
-    }
-    if not(str.is_empty()) {
       latest[end] = Spanned::new(Normal(str), {
         start: latest[end].span.start,
         end: span_end,
       })
     }
+    if not(latest[end].is_detached()) {
+      span_end = latest[end].span.start + new_len
+    }
+    let v = latest[end].v
+    latest[end] = Spanned::new(v, {
+      start: latest[end].span.start,
+      end: span_end,
+    })
   }
   for chunk_idx, chunk in vals.iter2() {
     if chunk.v is Normal(s) {
@@ -312,8 +316,7 @@ pub fn split_token_lists_with_kw(
       let splits = splits.drop(1)
       let mut cur = ""
       for split in splits {
-        if prev.get_char(prev.length() - 1).unwrap().is_whitespace() &&
-          split.get_char(0).unwrap().is_whitespace() {
+        if prev.ends_with_whitespace() && split.starts_with_whitespace() {
           cur += prev
           let end = if chunk.is_detached() {
             @int.max_value
