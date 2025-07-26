@@ -198,7 +198,7 @@ fn Person::parse_two_commas(s1 : Chunks, s2 : Chunks, s3 : Chunks) -> Person {
 }
 
 ///|
-type ArrayPerson Array[Person]
+pub(all) type ArrayPerson Array[Person]
 
 ///|
 pub impl Type for ArrayPerson with from_chunks(chunks) {

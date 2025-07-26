@@ -1,5 +1,17 @@
 ///|
-suberror TypeError (Span, TypeErrorKind)
+pub suberror TypeError (Span, TypeErrorKind)
+
+///|
+pub impl Show for TypeError with to_string(self) {
+  match self {
+    TypeError((span, kind)) => "\{kind}: \{span.start}-\{span.end}"
+  }
+}
+
+///|
+pub impl Show for TypeError with output(self, logger) {
+  logger.write_string(self.to_string())
+}
 
 ///|
 pub(all) enum TypeErrorKind {
@@ -20,7 +32,7 @@ pub(all) enum TypeErrorKind {
   /// There is no [`Gender`] variant for this input.
   UnknownGender
   /// There was no integer range.
-  // InvalidIntegerRange
+  InvalidIntegerRange
   /// There is no [`Pagination`] variant for this input.
   UnknownPagination
   /// There is no [`EditorType`] variant for this input.
@@ -47,7 +59,7 @@ pub impl Show for TypeErrorKind with to_string(self) {
     WrongNumberOfDigits => "wrong number of digits"
     InvalidFormat => "invalid format"
     UnknownGender => "unknown gender"
-    // InvalidIntegerRange => "invalid integer range"
+    InvalidIntegerRange => "invalid integer range"
     UnknownPagination => "unknown pagination"
     UnknownEditorType => "unknown editor type"
     UnknownLangId => "unknown language id"
@@ -62,7 +74,7 @@ pub trait Type {
 }
 
 ///|
-impl Type for Int64 with from_chunks(chunks) {
+pub impl Type for Int64 with from_chunks(chunks) {
   let span = ChunkExt::span(chunks)
   let s = ChunkExt::format_verbatim(chunks)
   let s = s.trim_space_start().trim_space_end()
@@ -85,7 +97,7 @@ impl Type for Int64 with from_chunks(chunks) {
 }
 
 ///|
-impl Type for Int64 with to_chunks(self) {
+pub impl Type for Int64 with to_chunks(self) {
   let str = self.to_string()
   [Spanned::detached(Chunk::Normal(str))]
 }
@@ -101,15 +113,15 @@ pub impl Type for String with to_chunks(self) {
 }
 
 ///|
-type ArrayChunks Array[Chunks]
+pub(all) type ArrayChunks Array[Chunks]
 
 ///|
-impl Type for ArrayChunks with from_chunks(chunk) {
+pub impl Type for ArrayChunks with from_chunks(chunk) {
   split_token_lists_with_kw(chunk, "and")
 }
 
 ///|
-impl Type for ArrayChunks with to_chunks(self) {
+pub impl Type for ArrayChunks with to_chunks(self) {
   let merged = []
   let mut first = true
   for chunk in self.inner() {
@@ -124,10 +136,10 @@ impl Type for ArrayChunks with to_chunks(self) {
 }
 
 ///|
-type ArrayString Array[String]
+pub(all) type ArrayString Array[String]
 
 ///|
-impl Type for ArrayString with from_chunks(chunks) {
+pub impl Type for ArrayString with from_chunks(chunks) {
   split_token_lists(chunks, ",")
   .iter()
   .map(chunks => ChunkExt::format_verbatim(chunks))
@@ -135,7 +147,7 @@ impl Type for ArrayString with from_chunks(chunks) {
 }
 
 ///|
-impl Type for ArrayString with to_chunks(self) {
+pub impl Type for ArrayString with to_chunks(self) {
   let chunks = self
     .inner()
     .iter()
@@ -145,7 +157,7 @@ impl Type for ArrayString with to_chunks(self) {
 }
 
 ///|
-pub enum PermissiveType[T] {
+pub(all) enum PermissiveType[T] {
   /// A typed version of the value.
   Typed(T)
   /// A literal string, for example `"Reprinted, and revised edition"`.
@@ -153,9 +165,11 @@ pub enum PermissiveType[T] {
 }
 
 ///|
-fn[T : Type] PermissiveType::from_chunks(chunks : Chunks) -> PermissiveType[T] {
+pub fn[T : Type] PermissiveType::from_chunks(
+  chunks : Chunks,
+) -> PermissiveType[T] {
   try {
-    let val : T = parse(chunks)
+    let val : T = parse_chunks(chunks)
     PermissiveType::Typed(val)
   } catch {
     _ => PermissiveType::Chunks(chunks)
@@ -163,7 +177,7 @@ fn[T : Type] PermissiveType::from_chunks(chunks : Chunks) -> PermissiveType[T] {
 }
 
 ///|
-fn[T : Type] PermissiveType::to_chunks(self : PermissiveType[T]) -> Chunks {
+pub fn[T : Type] PermissiveType::to_chunks(self : PermissiveType[T]) -> Chunks {
   match self {
     Typed(val) => val.to_chunks()
     Chunks(chunks) => chunks
@@ -171,7 +185,7 @@ fn[T : Type] PermissiveType::to_chunks(self : PermissiveType[T]) -> Chunks {
 }
 
 ///|
-impl Type for Array[PermissiveType[Language]] with from_chunks(chunks) {
+pub impl Type for Array[PermissiveType[Language]] with from_chunks(chunks) {
   split_token_lists_with_kw(chunks, "and")
   .iter()
   .map(c => PermissiveType::from_chunks(c))
@@ -179,7 +193,7 @@ impl Type for Array[PermissiveType[Language]] with from_chunks(chunks) {
 }
 
 ///|
-impl Type for Array[PermissiveType[Language]] with to_chunks(self) {
+pub impl Type for Array[PermissiveType[Language]] with to_chunks(self) {
   let merged = []
   let mut first = true
   for chunk in self {
@@ -194,7 +208,7 @@ impl Type for Array[PermissiveType[Language]] with to_chunks(self) {
 }
 
 ///|
-pub enum Pagination {
+pub(all) enum Pagination {
   Page
   Column
   Line
@@ -217,7 +231,7 @@ pub fn Pagination::from_str(s : String) -> Pagination? {
 }
 
 ///|
-impl Type for Pagination with from_chunks(chunks) {
+pub impl Type for Pagination with from_chunks(chunks) {
   let span = ChunkExt::span(chunks)
   let pagination = Pagination::from_str(
     ChunkExt::format_verbatim(chunks).to_lower(),
@@ -230,13 +244,13 @@ impl Type for Pagination with from_chunks(chunks) {
 }
 
 ///|
-impl Type for Pagination with to_chunks(self) {
+pub impl Type for Pagination with to_chunks(self) {
   let res = self.to_string()
   [Spanned::detached(Normal(res))]
 }
 
 ///|
-pub enum EditorType {
+pub(all) enum EditorType {
   Editor
   Compiler
   Founder
@@ -271,7 +285,7 @@ pub fn EditorType::from_str(s : String) -> EditorType? {
 }
 
 ///|
-impl Type for EditorType with from_chunks(chunks) {
+pub impl Type for EditorType with from_chunks(chunks) {
   let span = ChunkExt::span(chunks)
   if EditorType::from_str(ChunkExt::format_verbatim(chunks).to_lower())
     is Some(editor_type) {
@@ -282,13 +296,13 @@ impl Type for EditorType with from_chunks(chunks) {
 }
 
 ///|
-impl Type for EditorType with to_chunks(self) {
+pub impl Type for EditorType with to_chunks(self) {
   let res = self.to_string()
   [Spanned::detached(Normal(res))]
 }
 
 ///|
-pub enum Gender {
+pub(all) enum Gender {
   SingularFemale
   SingularMale
   SingularNeuter
@@ -345,7 +359,7 @@ pub fn Gender::coalesce(list : Array[Gender]) -> Gender? {
 }
 
 ///|
-impl Type for Gender with from_chunks(chunks) {
+pub impl Type for Gender with from_chunks(chunks) {
   let span = ChunkExt::span(chunks)
   match ChunkExt::format_verbatim(chunks).to_lower() {
     "sf" => SingularFemale
@@ -359,7 +373,91 @@ impl Type for Gender with from_chunks(chunks) {
 }
 
 ///|
-impl Type for Gender with to_chunks(self) {
+pub impl Type for Gender with to_chunks(self) {
   let res = self.to_string()
   [Spanned::detached(Chunk::Normal(res))]
+}
+
+///|
+pub(all) struct Range {
+  start : Int
+  end : Int
+} derive(Show, Eq)
+
+///|
+pub impl Type for Range with from_chunks(chunks) {
+  let span = ChunkExt::span(chunks)
+  let array_range : ArrayRange = parse_chunks(chunks)
+  let range = array_range.inner().get(0)
+  if range is Some(range) {
+    range
+  } else {
+    raise TypeError((span, InvalidIntegerRange))
+  }
+}
+
+///|
+pub impl Type for Range with to_chunks(self) {
+  let str = "\{self.start}-\{self.end}"
+  [Spanned::detached(Chunk::Normal(str))]
+}
+
+///|
+pub(all) type ArrayRange Array[Range]
+
+///|
+pub impl Type for ArrayRange with from_chunks(chunks) {
+  let range_arrays = split_token_lists(chunks, ",")
+  let res = []
+  let number = fn(s : Scanner, offset : Int) -> Int raise TypeError {
+    ignore(s.eat_whitespace())
+    let idx = s.cursor()
+    let num = s.eat_while(CharPredicate::new(c => c.is_ascii_digit()))
+    @strconv.parse_int(num) catch {
+      _ =>
+        raise TypeError(
+          ({ start: idx + offset, end: s.cursor() + offset }, InvalidNumber),
+        )
+    }
+  }
+  let component = fn(s : Scanner, offset : Int) -> Int raise TypeError {
+    for {
+      let num = number(s, offset)
+      ignore(s.eat_whitespace())
+      if not(s.eat_if(':')) {
+        return num
+      }
+    }
+  }
+  for
+    pair in range_arrays.map(f => (
+      ChunkExt::format_verbatim(f),
+      ChunkExt::span(f),
+    )) {
+    let range_candidate = pair.0
+    let span = pair.1
+    let s = Scanner::new(range_candidate)
+    let start = component(s, span.start)
+    ignore(s.eat_whitespace())
+    if not(s.eat_if(['-', '–', '—'])) {
+      res.push({ start, end: start })
+      continue
+    }
+    ignore(s.eat_while('-'))
+    ignore(s.eat_whitespace())
+    let end = component(s, span.start)
+    res.push({ start, end })
+  }
+  res
+}
+
+///|
+pub impl Type for ArrayRange with to_chunks(self) {
+  let chunks = self
+    .inner()
+    .map(range => {
+      let str = "\{range.start}-\{range.end}"
+      Spanned::detached(Chunk::Normal(str))
+    })
+  join_chunk_list(chunks, ",")
 }

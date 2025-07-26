@@ -437,12 +437,12 @@ fn here(s : Scanner) -> Span {
 }
 
 ///|
-impl Type for Date with from_chunks(chunks) {
+pub impl Type for Date with from_chunks(chunks) {
   Date::parse(chunks)
 }
 
 ///|
-impl Type for Date with to_chunks(self) {
+pub impl Type for Date with to_chunks(self) {
   let mut s = match self.value {
     Before(end) => "../\{end}"
     After(start) => "\{start}/.."

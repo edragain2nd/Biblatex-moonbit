@@ -1,5 +1,5 @@
 ///|
-pub enum Language {
+pub(all) enum Language {
   Basque
   Bulgarian
   Catalan
@@ -96,7 +96,7 @@ pub fn Language::from_str(s : String) -> Language? {
 }
 
 ///|
-impl Type for Language with from_chunks(chunks) {
+pub impl Type for Language with from_chunks(chunks) {
   let span = ChunkExt::span(chunks)
   let language = Language::from_str(ChunkExt::format_verbatim(chunks))
   if language is Some(language) {
@@ -107,7 +107,7 @@ impl Type for Language with from_chunks(chunks) {
 }
 
 ///|
-impl Type for Language with to_chunks(self) {
+pub impl Type for Language with to_chunks(self) {
   [Spanned::detached(Chunk::Verbatim(self.to_string()))]
 }
 

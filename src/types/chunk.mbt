@@ -447,7 +447,7 @@ pub fn count_num_char(chunks : Chunks, c : Char) -> Int {
 }
 
 ///|
-pub fn[T : Type] parse(chunks : Chunks) -> T raise TypeError {
+pub fn[T : Type] parse_chunks(chunks : Chunks) -> T raise TypeError {
   T::from_chunks(chunks)
 }
 
