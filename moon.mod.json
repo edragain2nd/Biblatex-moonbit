@@ -1,5 +1,5 @@
 {
-  "name": "biblatex",
+  "name": "edragain2nd/biblatex",
   "version": "0.1.0",
   "deps": {
     "edragain2nd/unscanny": "0.1.1",
