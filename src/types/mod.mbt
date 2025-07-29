@@ -1,5 +1,5 @@
 ///|
-pub suberror TypeError (Span, TypeErrorKind)
+pub(all) suberror TypeError (Span, TypeErrorKind) derive(Eq)
 
 ///|
 pub impl Show for TypeError with to_string(self) {
@@ -162,7 +162,7 @@ pub(all) enum PermissiveType[T] {
   Typed(T)
   /// A literal string, for example `"Reprinted, and revised edition"`.
   Chunks(Chunks)
-}
+}derive(Show,Eq)
 
 ///|
 pub fn[T : Type] PermissiveType::from_chunks(
@@ -261,7 +261,7 @@ pub(all) enum EditorType {
   Organizer
   Director
   Unknown(String)
-} derive(Show)
+} derive(Show,Eq)
 
 ///|
 pub fn EditorType::from_str(s : String) -> EditorType? {
@@ -277,11 +277,7 @@ pub fn EditorType::from_str(s : String) -> EditorType? {
     "director" => Director
     _ => Unknown(s)
   }
-  if not(editor is Unknown(_)) {
     Some(editor)
-  } else {
-    None
-  }
 }
 
 ///|

@@ -1,6 +1,5 @@
 {"import":[
     "biblatex/span",
     "biblatex/utils",
-    "edragain2nd/unscanny",
-    "edragain2nd/compose"
+    "edragain2nd/unscanny"
   ]}

@@ -15,7 +15,7 @@ typealias @types.(
 
 ///|
 pub fn Entry::author(self : Entry) -> Result[Array[Person], RetrievalError] {
-  let res = self.get("auther")
+  let res = self.get("author")
   if res is None {
     return Err(Missing("author"))
   }
@@ -133,7 +133,7 @@ pub fn Entry::organization(
 }
 
 ///|
-pub fn Entry::set_organizatuin(self : Entry, item : Array[Chunks]) -> Unit {
+pub fn Entry::set_organization(self : Entry, item : Array[Chunks]) -> Unit {
   let item : ArrayChunks = ArrayChunks(item)
   self.set("organization", item.to_chunks())
 }
@@ -230,7 +230,7 @@ pub fn Entry::type_(self : Entry) -> Result[String, RetrievalError] {
 }
 
 ///|
-pub fn set_type_(self : Entry, item : String) -> Unit {
+pub fn Entry::set_type_(self : Entry, item : String) -> Unit {
   self.set("type", Type::to_chunks(item))
 }
 
@@ -486,7 +486,7 @@ pub fn Entry::institution(self : Entry) -> Result[String, RetrievalError] {
 
 ///|
 pub fn Entry::set_institution(self : Entry, item : String) -> Unit {
-  self.set("key", Type::to_chunks(item))
+  self.set("institution", Type::to_chunks(item))
 }
 
 ///|
@@ -739,7 +739,7 @@ pub fn Entry::set_author_type(self : Entry, item : String) -> Unit {
 pub fn Entry::book_author(
   self : Entry,
 ) -> Result[Array[Person], RetrievalError] {
-  let res = self.get("bookauther")
+  let res = self.get("bookauthor")
   if res is None {
     return Err(Missing("bookauthor"))
   }
@@ -1096,8 +1096,8 @@ pub fn Entry::issue_title_addon(self : Entry) -> Result[Chunks, RetrievalError] 
 }
 
 ///|
-pub fn Entry::set_isssue_addon(self : Entry, item : Chunks) -> Unit {
-  self.set("issueaddon", item)
+pub fn Entry::set_issue_title_addon(self : Entry, item : Chunks) -> Unit {
+  self.set("issuetitleaddon", item)
 }
 
 ///|
@@ -1312,7 +1312,7 @@ pub fn Entry::orig_language(
 ///|
 pub fn Entry::set_orig_language(self : Entry, item : Array[String]) -> Unit {
   let item : ArrayString = ArrayString(item)
-  self.set("origlocation", item.to_chunks())
+  self.set("origlanguage", item.to_chunks())
 }
 
 ///|
@@ -1412,7 +1412,7 @@ pub fn Entry::set_reprint_title(self : Entry, item : Chunks) -> Unit {
 pub fn Entry::short_author(
   self : Entry,
 ) -> Result[Array[Person], RetrievalError] {
-  let res = self.get("shortauther")
+  let res = self.get("shortauthor")
   if res is None {
     return Err(Missing("shortauthor"))
   }
@@ -1559,9 +1559,9 @@ pub fn Entry::translator(self : Entry) -> Result[Array[Person], RetrievalError] 
 }
 
 ///|
-pub fn Entry::set_tranlator(self : Entry, item : Array[Person]) -> Unit {
+pub fn Entry::set_translator(self : Entry, item : Array[Person]) -> Unit {
   let item : ArrayPerson = ArrayPerson(item)
-  self.set("tranlator", item.to_chunks())
+  self.set("translator", item.to_chunks())
 }
 
 ///|

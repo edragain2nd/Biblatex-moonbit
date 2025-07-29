@@ -1,21 +1,18 @@
-// raise Error
-
 ///|
-typealias @unscanny.CharPredicate
-
-///|
-typealias @unscanny.Scanner
-
-///|
-typealias @types.TypeErrorKind
+typealias @unscanny.(CharPredicate, Scanner)
 
 ///|
 type Field Array[Spanned[RawChunk]]
 
 ///|
+/// A literal representation of a bibliography file, with abbreviations not yet
+/// resolved.
 pub struct RawBibliogrphy {
+  /// TeX commands to be prepended to the document, only supported by BibTeX.
   mut preamble : String
+  /// The collection of citation keys and bibliography entries.
   entries : Array[Spanned[RawEntry]]
+  /// A map of reusable abbreviations, only supported by BibTeX.
   abbreviations : Array[Pair]
 }
 
@@ -25,33 +22,48 @@ pub fn RawBibliogrphy::new() -> RawBibliogrphy {
 }
 
 ///|
+/// A raw extracted entry, with abbreviations not yet resolved.
 pub struct RawEntry {
+  /// The citation key.
   key : Spanned[String]
+  /// Denotes the type of bibliographic item (e.g., `article`).
   kind : Spanned[String]
+  /// Maps from field names to their values.
   fields : Array[Pair]
 }
 
 ///|
+/// Parse a raw bibliography from a source string.
 pub fn RawBibliogrphy::parse(src : String) -> RawBibliogrphy raise ParseError {
   BiblatexParser::new(src).parse()
 }
 
 ///|
+/// Backing struct for parsing a Bib(La)TeX file into a [`RawBibliography`].
 struct BiblatexParser {
   s : Scanner
   res : RawBibliogrphy
 }
 
 ///|
-suberror ParseError (Span, ParseErrorKind)
+/// An error that might occur during initial parsing of the bibliography.
+/// span Span: Where in the source the error occurred.
+/// kind ParseErrorKind: What kind of error occurred.
+pub suberror ParseError (Span, ParseErrorKind) derive(Eq)
 
 ///|
-pub struct Pair {
-  key : Spanned[String]
-  value : Spanned[Field]
+pub impl Show for ParseError with to_string(self) {
+  let ParseError((span, kind)) = self
+  "\{kind}: \{span.start}-\{span.end}"
 }
 
 ///|
+pub impl Show for ParseError with output(self, logger) {
+  logger.write_string(self.to_string())
+}
+
+///|
+/// A literal representation of a bibliography entry field.
 pub enum RawChunk {
   /// A normal field value.
   Normal(String)
@@ -60,6 +72,10 @@ pub enum RawChunk {
 } derive(Eq)
 
 ///|
+/// Error conditions that might occur during initial parsing of the
+/// bibliography.
+///
+/// Also see [`ParseError`].
 pub enum ParseErrorKind {
   /// The file ended prematurely.
   UnexpectedEof
@@ -75,7 +91,7 @@ pub enum ParseErrorKind {
   DuplicateKey(String)
   /// A type error occurred while trying to resolve cross-references.
   ResolutionError(TypeErrorKind)
-}derive(Eq)
+} derive(Eq)
 
 ///|
 pub enum Token {
@@ -94,7 +110,7 @@ pub enum Token {
   Equals
   /// A decimal point: `.`.
   DecimalPoint
-}derive(Eq)
+} derive(Eq)
 
 ///|
 impl Show for ParseErrorKind with to_string(self) {
@@ -133,13 +149,15 @@ impl Show for Token with output(self, logger) {
 }
 
 ///|
+/// Constructs a new parser.
 pub fn BiblatexParser::new(src : String) -> BiblatexParser {
   { s: Scanner::new(src), res: RawBibliogrphy::new() }
 }
 
 ///|
+/// Parses the file, consuming the parser in the process.
 pub fn BiblatexParser::parse(
-  self : BiblatexParser
+  self : BiblatexParser,
 ) -> RawBibliogrphy raise ParseError {
   while not(self.s.done()) {
     ignore(self.s.eat_whitespace())
@@ -154,6 +172,7 @@ pub fn BiblatexParser::parse(
 }
 
 ///|
+/// Eat a comma.
 fn BiblatexParser::comma(self : BiblatexParser) -> Unit raise ParseError {
   if not(self.s.eat_if(',')) {
     raise ParseError((self.here(), ParseErrorKind::Expected(Comma)))
@@ -162,9 +181,10 @@ fn BiblatexParser::comma(self : BiblatexParser) -> Unit raise ParseError {
 }
 
 ///|
+/// Eat a delimiter.
 fn BiblatexParser::brace(
   self : BiblatexParser,
-  open : Bool
+  open : Bool,
 ) -> Unit raise ParseError {
   let (brace, token) = if open {
     ('{', Token::OpeningBrace)
@@ -181,6 +201,7 @@ fn BiblatexParser::brace(
 }
 
 ///|
+/// Eat a quote.
 fn BiblatexParser::quote(self : BiblatexParser) -> Unit raise ParseError {
   if not(self.s.eat_if('\"')) {
     raise ParseError(
@@ -192,6 +213,8 @@ fn BiblatexParser::quote(self : BiblatexParser) -> Unit raise ParseError {
 }
 
 ///|
+
+///| Eat a quote.
 fn BiblatexParser::equals(self : BiblatexParser) -> Unit raise ParseError {
   if not(self.s.eat_if('=')) {
     raise ParseError((self.here(), ParseErrorKind::Expected(Token::Equals)))
@@ -201,8 +224,9 @@ fn BiblatexParser::equals(self : BiblatexParser) -> Unit raise ParseError {
 }
 
 ///|
+/// Eat a string.
 fn BiblatexParser::string(
-  self : BiblatexParser
+  self : BiblatexParser,
 ) -> Spanned[String] raise ParseError {
   ignore(self.quote())
   let idx = self.s.cursor()
@@ -227,6 +251,7 @@ fn BiblatexParser::string(
 }
 
 ///|
+/// Eat a number.
 fn BiblatexParser::number(self : BiblatexParser) -> String raise ParseError {
   let idx = self.s.cursor()
   let mut has_dot : Bool = false
@@ -255,8 +280,9 @@ fn BiblatexParser::number(self : BiblatexParser) -> String raise ParseError {
 }
 
 ///|
+/// Eat a braced value.
 fn BiblatexParser::braced(
-  self : BiblatexParser
+  self : BiblatexParser,
 ) -> Spanned[RawChunk] raise ParseError {
   ignore(self.brace(true))
   let idx = self.s.cursor()
@@ -289,8 +315,9 @@ fn BiblatexParser::braced(
 }
 
 ///|
+/// Eat an element of an abbreviation.
 fn BiblatexParser::abbr_element(
-  self : BiblatexParser
+  self : BiblatexParser,
 ) -> Spanned[RawChunk] raise ParseError {
   let start = self.s.cursor()
   let res = match self.s.peek() {
@@ -302,8 +329,9 @@ fn BiblatexParser::abbr_element(
 }
 
 ///|
+/// Eat an abbreviation field.
 fn BiblatexParser::abbr_field(
-  self : BiblatexParser
+  self : BiblatexParser,
 ) -> Spanned[Field] raise ParseError {
   let start = self.s.cursor()
   let elems : Array[Spanned[RawChunk]] = []
@@ -319,8 +347,9 @@ fn BiblatexParser::abbr_field(
 }
 
 ///|
+/// Eat a field.
 fn BiblatexParser::field(
-  self : BiblatexParser
+  self : BiblatexParser,
 ) -> (Spanned[String], Spanned[Field]) raise ParseError {
   let key = self.ident()
   ignore(self.s.eat_whitespace())
@@ -334,7 +363,7 @@ fn BiblatexParser::field(
 
 ///|
 fn BiblatexParser::single_field(
-  self : BiblatexParser
+  self : BiblatexParser,
 ) -> Spanned[RawChunk] raise ParseError {
   match self.s.peek() {
     Some('{') => self.braced()
@@ -347,8 +376,9 @@ fn BiblatexParser::single_field(
 }
 
 ///|
+/// Eat fields
 fn BiblatexParser::fields(
-  self : BiblatexParser
+  self : BiblatexParser,
 ) -> Array[Pair] raise ParseError {
   let fields = []
   while not(self.s.done()) {
@@ -375,6 +405,7 @@ fn BiblatexParser::fields(
 }
 
 ///|
+/// Eat an entry key.
 fn BiblatexParser::key(self : BiblatexParser) -> Spanned[String] {
   let idx = self.s.cursor()
   ignore(self.s.eat_while(CharPredicate::new(is_key)))
@@ -382,8 +413,9 @@ fn BiblatexParser::key(self : BiblatexParser) -> Spanned[String] {
 }
 
 ///|
+/// Eat an identifier.
 fn BiblatexParser::ident(
-  self : BiblatexParser
+  self : BiblatexParser,
 ) -> Spanned[String] raise ParseError {
   let idx = self.s.cursor()
   let is_start = self.s.peek().map(is_id_start).unwrap_or_default()
@@ -397,6 +429,7 @@ fn BiblatexParser::ident(
 }
 
 ///|
+/// Eat an entry.
 fn BiblatexParser::entry(self : BiblatexParser) -> Unit raise ParseError {
   let start = self.s.cursor()
   if self.s.eat() != Some('@') {
@@ -418,6 +451,7 @@ fn BiblatexParser::entry(self : BiblatexParser) -> Unit raise ParseError {
 }
 
 ///|
+/// Eat the body of a strings entry.
 fn BiblatexParser::strings(self : BiblatexParser) -> Unit raise ParseError {
   let fields = self.fields()
   self.res.abbreviations.append(fields)
@@ -425,6 +459,7 @@ fn BiblatexParser::strings(self : BiblatexParser) -> Unit raise ParseError {
 }
 
 ///|
+/// Eat the body of a preamble entry.
 fn BiblatexParser::preamble(self : BiblatexParser) -> Unit raise ParseError {
   let idx = self.s.cursor()
   ignore(self.string())
@@ -437,10 +472,11 @@ fn BiblatexParser::preamble(self : BiblatexParser) -> Unit raise ParseError {
 }
 
 ///|
+/// Eat the body of an entry.
 fn BiblatexParser::body(
   self : BiblatexParser,
   kind : Spanned[String],
-  start : Int
+  start : Int,
 ) -> Unit raise ParseError {
   let key = self.key()
   ignore(self.s.eat_whitespace())
@@ -470,21 +506,31 @@ fn BiblatexParser::here(self : BiblatexParser) -> Span {
 }
 
 ///|
+/// The keys for fields and their values.
+pub struct Pair {
+  key : Spanned[String]
+  value : Spanned[Field]
+}
+
+///|
 pub fn Pair::new(key : Spanned[String], value : Spanned[Field]) -> Pair {
   { key, value }
 }
 
 ///|
+/// Whether a character is allowed in an entry key
 pub fn is_key(c : Char) -> Bool {
   not(c is (',' | '}')) && not(c.is_control()) && not(c.is_whitespace())
 }
 
 ///|
+/// Whether a character can start an identifier.
 pub fn is_id_start(c : Char) -> Bool {
   not(c is (':' | '<' | '-' | '>')) && is_id_continue(c)
 }
 
 ///|
+/// Whether a character can continue an identifier.
 pub fn is_id_continue(c : Char) -> Bool {
   not(c is ('@' | '{' | '}' | '"' | '#' | '\'' | '(' | ')' | ',' | '=' | '%')) &&
   not(c.is_control()) &&

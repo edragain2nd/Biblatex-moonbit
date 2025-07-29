@@ -3,5 +3,6 @@
     "biblatex/utils",
     "edragain2nd/unscanny",
     "biblatex/span",
-    "edragain2nd/compose"
+    "edragain2nd/compose",
+    "moonbitlang/x/fs"
   ]}

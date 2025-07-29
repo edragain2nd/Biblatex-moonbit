@@ -72,7 +72,7 @@ pub fn AuthorMode::possible(self : AuthorMode) -> Array[String] {
 }
 
 ///|
-pub enum PagesChapterMode {
+pub(all) enum PagesChapterMode {
   /// No specification for the `page` and `chapter` field is given.
   None
   /// At least one of the fields must be present.

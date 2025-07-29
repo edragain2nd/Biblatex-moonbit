@@ -1,5 +1,5 @@
 ///|
-typealias @types.(TypeError, Chunk, ArrayString)
+typealias @types.(TypeError, Chunk, ArrayString,TypeErrorKind)
 
 ///|
 typealias Array[Spanned[Chunk]] as Chunks
@@ -17,20 +17,20 @@ fnalias @types.parse_chunks
 pub(all) struct Bibliography {
   mut entries : Array[Entry]
   mut keys : Map[String, Int]
-} derive(Default)
+} derive(Default, Show)
 
 ///|
 pub(all) struct Entry {
   key : String
   entry_type : EntryType
   fields : Map[String, Chunks]
-}
+} derive(Show, Eq)
 
 ///|
 pub(all) enum RetrievalError {
   Missing(String)
   TypeError(TypeError)
-}
+} derive(Eq)
 
 ///|
 pub impl Show for RetrievalError with to_string(self) {
@@ -671,7 +671,7 @@ pub(all) struct Report {
   superfluous : Array[String]
   /// These fields were present but contained malformed data.
   malformed : Array[(String, TypeError)]
-}
+} derive(Show, Eq)
 
 ///| Whether the report is empty and contains no errors.
 pub fn Report::is_ok(self : Report) -> Bool {
@@ -679,7 +679,409 @@ pub fn Report::is_ok(self : Report) -> Bool {
   self.superfluous.is_empty() &&
   self.malformed.is_empty()
 }
-// test "temp" {
 
-// }  ArrayString::get_as(entry,"ids")
-//   entry
+///|
+test "test_correct_bib" {
+  let contents = @fs.read_file_to_string("tests/gral.bib")
+  let bibliography = Bibliography::parse(contents).unwrap()
+  assert_eq(bibliography.entries.length(), 83)
+}
+
+///|
+test "test_repeated_key" {
+  let contents = @fs.read_file_to_string("tests/gral_rep_key.bib")
+  let bibliography = Bibliography::parse(contents)
+  match bibliography {
+    Ok(_) => abort("Should return Err")
+    Err(s) => {
+      let ParseError((_, kind)) = s
+      assert_eq(kind, DuplicateKey("ishihara2012"))
+    }
+  }
+}
+
+///|
+test "test_parse_incorrect_result" {
+  let contents = @fs.read_file_to_string("tests/incorrect_syntax.bib")
+  let bibliography = Bibliography::parse(contents)
+  match bibliography {
+    Ok(_) => abort("Should return Err")
+    Err(s) =>
+      assert_eq(
+        s,
+        ParseError(({ start: 369, end: 369 }, Expected(Token::Equals))),
+      )
+  }
+}
+
+///|
+test "test_parse_incorrect_types" {
+  let contents = @fs.read_file_to_string("tests/incorrect_data.bib")
+  let bibliography = Bibliography::parse(contents).unwrap()
+  let rashid = bibliography.get("rashid2016").unwrap()
+  match rashid.pagination() {
+    Err(TypeError(s)) =>
+      assert_eq(s, TypeError(({ start: 352, end: 359 }, UnknownPagination)))
+    _ => abort("")
+  }
+}
+
+///|
+test "test_keys" {
+  let contents = @fs.read_file_to_string("tests/editortypes.bib")
+  let bibliography = Bibliography::parse(contents).unwrap()
+  assert_eq(bibliography.keys().collect(), [
+    "acerolaThisDifferenceGaussians2022", "mozart_KV183_1773", "Smith2018",
+  ])
+}
+
+///|
+test "test_gral_paper" {
+  dump_debug("tests/gral.bib")
+}
+
+///|
+test "test_ds_report" {
+  dump_debug("tests/ds.bib")
+}
+
+///|
+test "test_libra_paper" {
+  dump_author_title("tests/libra.bib")
+}
+
+///|
+test "test_rass_report" {
+  dump_author_title("tests/rass.bib")
+}
+
+///|
+test "test_polar_report" {
+  dump_author_title("tests/polaritons.bib")
+}
+
+///|
+test "test_comments" {
+  let contents = @fs.read_file_to_string("tests/comments.bib")
+  let bibliography = Bibliography::parse(contents).unwrap()
+  assert_eq(bibliography.keys().collect(), [
+    "mcelreath2007mathematical", "fischer2022equivalence", "roes2003belief", "wong2016null",
+  ])
+  assert_eq(
+    ChunkExt::format_verbatim(
+      bibliography.get("wong2016null").unwrap().title().unwrap(),
+    ),
+    "Null hypothesis testing (I)-5% significance level",
+  )
+}
+
+///|
+test "test_extended_name_format" {
+  dump_author_title("tests/extended_name_format.bib")
+}
+
+///|
+fn dump_debug(file : String) -> Unit raise @fs.IOError {
+  let contents = @fs.read_file_to_string(file)
+  let bibliography = Bibliography::parse(contents).unwrap()
+  println("\{bibliography}")
+}
+
+///|
+fn dump_author_title(file : String) -> Unit raise @fs.IOError {
+  let contents = @fs.read_file_to_string(file)
+  let bibliography = Bibliography::parse(contents).unwrap()
+  println(bibliography.to_biblatex_string())
+  for x in bibliography {
+    let authors = match x.author() {
+      Ok(a) => a
+      Err(_) => []
+    }
+    let mut res = ""
+    for a in authors {
+      res += "\{a}, "
+    }
+    println(res)
+    println("\"\{ChunkExt::format_sentence(x.title().unwrap())}\".")
+  }
+}
+
+///|
+test "test_alias" {
+  let contents = @fs.read_file_to_string("tests/cross.bib")
+  let bibliography = Bibliography::parse(contents).unwrap()
+  assert_eq(bibliography.get("issue201"), bibliography.get("github"))
+  bibliography.alias_("issue201", "crap")
+  assert_eq(bibliography.get("crap"), bibliography.get("unstable"))
+  let _ = bibliography.remove("crap")
+  let entry = bibliography.get("cannonfodder").unwrap()
+  assert_eq(entry.key, "cannonfodder")
+  assert_eq(entry.entry_type, Misc)
+}
+
+///|
+test "test_bibtex_conversion" {
+  let contents = @fs.read_file_to_string("tests/cross.bib")
+  let bibliography = Bibliography::parse(contents).unwrap()
+  let biblatex = bibliography.get("haug2019").unwrap().to_biblatex_string()
+  assert_true(
+    biblatex.contains("institution = {Technische Universität Berlin},"),
+  )
+  let bibtex = bibliography.get("haug2019").unwrap().to_bibtex_string().unwrap()
+  assert_true(bibtex.contains("school = {Technische Universität Berlin},"))
+  assert_true(bibtex.contains("year = {2019},"))
+  assert_true(bibtex.contains("month = {10},"))
+  assert_true(!bibtex.contains("institution"))
+  assert_true(!bibtex.contains("date"))
+}
+
+///|
+test "test_verify" {
+  let contents = @fs.read_file_to_string("tests/cross.bib")
+  let bibliography = Bibliography::parse(contents).unwrap()
+  assert_true(bibliography.get("haug2019").unwrap().verify().is_ok())
+  assert_true(bibliography.get("cannonfodder").unwrap().verify().is_ok())
+  let ill = bibliography.get("ill-defined").unwrap()
+  let report = ill.verify()
+  assert_eq(report.missing.length(), 3)
+  assert_eq(report.superfluous.length(), 3)
+  assert_eq(report.malformed.length(), 1)
+  assert_true(report.missing.contains("title"))
+  assert_true(report.missing.contains("year"))
+  assert_true(report.missing.contains("editor"))
+  assert_true(report.superfluous.contains("maintitle"))
+  assert_true(report.superfluous.contains("author"))
+  assert_true(report.superfluous.contains("chapter"))
+  assert_eq(report.malformed[0].0, "gender")
+}
+
+///|
+test "test_crossref" {
+  let contents = @fs.read_file_to_string("tests/cross.bib")
+  let bibliography = Bibliography::parse(contents).unwrap()
+  let e = bibliography.get("macmillan").unwrap()
+  assert_eq(ChunkExt::format_verbatim(e.publisher().unwrap()[0]), "Macmillan")
+  assert_eq(
+    ChunkExt::format_verbatim(e.location().unwrap()),
+    "New York and London",
+  )
+  let book = bibliography.get("recursive").unwrap()
+  assert_eq(
+    ChunkExt::format_verbatim(book.publisher().unwrap()[0]),
+    "Macmillan",
+  )
+  assert_eq(
+    ChunkExt::format_verbatim(book.location().unwrap()),
+    "New York and London",
+  )
+  assert_eq(
+    ChunkExt::format_verbatim(book.title().unwrap()),
+    "Recursive shennenigans and other important stuff",
+  )
+  assert_eq(bibliography.get("arrgh").unwrap().parents().unwrap(), [
+    "polecon".to_string(),
+  ])
+  let arrgh = bibliography.get("arrgh").unwrap()
+  assert_eq(arrgh.entry_type, Article)
+  assert_eq(arrgh.volume().unwrap(), PermissiveType::Typed(115))
+  assert_eq(arrgh.editors().unwrap()[0].0[0].name, "Uhlig")
+  assert_eq(ChunkExt::format_verbatim(arrgh.number().unwrap()), "6")
+  assert_eq(
+    ChunkExt::format_verbatim(arrgh.journal().unwrap()),
+    "Journal of Political Economy",
+  )
+  assert_eq(
+    ChunkExt::format_verbatim(arrgh.title().unwrap()),
+    "An‐arrgh‐chy: The Law and Economics of Pirate Organization",
+  )
+}
+
+///|
+test "linebreak_field" {
+  let contents =
+    #|@book{key, title = {Hello
+    #|Martin}};
+  let bibliography = Bibliography::parse(contents).unwrap()
+  let entry = bibliography.get("key").unwrap()
+  assert_eq(ChunkExt::format_verbatim(entry.title().unwrap()), "Hello Martin")
+}
+
+///|
+test "test_verbatim_fields" {
+  let contents = @fs.read_file_to_string("tests/libra.bib")
+  let bibliography = Bibliography::parse(contents).unwrap()
+
+  // Import an entry/field with escaped colons
+  let e = bibliography.get("dierksmeierJustHODLMoral2018").unwrap()
+  assert_eq(e.doi().unwrap(), "10.1007/s41463-018-0036-z")
+  assert_eq(
+    e.file().unwrap(),
+    "C:\\Users\\mhaug\\Zotero\\storage\\DTPR7TES\\Dierksmeier - 2018 - Just HODL On the Moral Claims of Bitcoin and Ripp.pdf",
+  )
+
+  // Import an entry/field with unescaped colons
+  let e = bibliography.get("LibraAssociationIndependent").unwrap()
+  assert_eq(e.url().unwrap(), "https://libra.org/association/")
+
+  // Test export of entry (not escaping colons)
+  let e = bibliography.get("finextraFedGovernorChallenges2019").unwrap()
+  let s =
+    #|@Online{{finextraFedGovernorChallenges2019,
+    #|title = {Fed {Governor} Challenges {Facebook}'s {Libra} Project},
+    #|author = {FinExtra},
+    #|date = {2019-12-18},
+    #|url = {https://www.finextra.com/newsarticle/34986/fed-governor-challenges-facebooks-libra-project},
+    #|urldate = {2020-08-22},
+    #|file = {C:\\Users\\mhaug\\Zotero\\storage\\VY9LAKFE\\fed-governor-challenges-facebooks-libra-project.html},
+    #|}
+  assert_eq(e.to_biblatex_string(), s)
+
+  // Test URLs with math and backslashes
+  let e = bibliography.get("weirdUrl2023").unwrap()
+  let s =
+    #|example.com?A=$B\%\{}
+  assert_eq(e.url().unwrap(), s)
+  let s =
+    #|example.com?A=$B\%\{}
+  assert_eq(e.doi().unwrap(), s)
+}
+
+///|
+test "test_synthesized_entry" {
+  let e = Entry::new("Test123", EntryType::Article)
+  let person : Person = {
+    name: "Monroe",
+    given_name: "Brian Albert",
+    prefix: "",
+    suffix: "",
+  }
+  let brian = [person]
+  e.set_author(brian)
+  assert_eq(Ok(brian), e.author())
+}
+
+///|
+test "test_case_sensitivity" {
+  let contents = @fs.read_file_to_string("tests/case.bib")
+  let bibliography = Bibliography::parse(contents).unwrap()
+  let entry = bibliography.get("biblatex2023").unwrap()
+  let author = entry.author()
+  match author {
+    Ok(a) => assert_eq(a[0].name, "Kime")
+    Err(RetrievalError::Missing(_)) => abort("Tags should be case insensitive.")
+    _ => abort("")
+  }
+}
+
+///|
+test "test_whitespace_collapse" {
+  let raw =
+    #|@article{aksin,
+    #|title        = {Effect of immobilization on catalytic characteristics of
+    #|saturated {Pd-N}-heterocyclic carbenes in {Mizoroki-Heck}
+    #|reactions},
+    #|}
+  let bibliography = Bibliography::parse(raw).unwrap()
+  let entry = bibliography.get("aksin").unwrap()
+  assert_eq(
+    entry.title().unwrap().get(0).map(s => s.v),
+    Some(
+      Chunk::Normal(
+        "Effect of immobilization on catalytic characteristics of saturated ".to_string(),
+      ),
+    ),
+  )
+}
+
+///|
+test "test_empty_date_fields" {
+  let raw =
+    #|@article{test,
+    #|            year        = 2000,
+    #|            day         = {},
+    #|            month    = {},
+    #|          }
+  let bibliography = Bibliography::parse(raw).unwrap()
+  assert_eq(
+    bibliography.get("test").unwrap().date(),
+    Err(
+      TypeError(
+        TypeError(({ start: 74, end: 74 }, TypeErrorKind::MissingNumber)),
+      ),
+    ),
+  )
+}
+
+///|
+test "test_page_ranges" {
+  let raw =
+    #|@article{test,
+    #|pages = {1---2},
+    #|}
+    #|@article{test1,
+    #|pages = {2--3},
+    #|}
+    #|@article{test2,
+    #|pages = {1},
+    #|}
+  let bibliography = Bibliography::parse(raw).unwrap()
+  assert_eq(
+    bibliography.get("test").unwrap().pages(),
+    Ok(PermissiveType::Typed([{ start: 1, end: 2 }])),
+  )
+  assert_eq(
+    bibliography.get("test1").unwrap().pages(),
+    Ok(PermissiveType::Typed([{ start: 2, end: 3 }])),
+  )
+  assert_eq(
+    bibliography.get("test2").unwrap().pages(),
+    Ok(PermissiveType::Typed([{ start: 1, end: 1 }])),
+  )
+}
+
+///|
+test "test_editor_types" {
+  let contents = @fs.read_file_to_string("tests/editortypes.bib")
+  let bibliography = Bibliography::parse(contents).unwrap()
+  let video = bibliography.get("acerolaThisDifferenceGaussians2022").unwrap()
+  assert_eq(
+    video.editors(),
+    Ok([
+      (
+        [{ name: "Acerola", given_name: "", prefix: "", suffix: "" }],
+        EditorType::Director,
+      ),
+    ]),
+  )
+  let music = bibliography.get("mozart_KV183_1773").unwrap()
+  assert_eq(
+    music.editors(),
+    Ok([
+      (
+        [
+          {
+            name: "Mozart",
+            given_name: "Wolfgang Amadeus",
+            prefix: "",
+            suffix: "",
+          },
+        ],
+        EditorType::Unknown("pianist"),
+      ),
+    ]),
+  )
+  let audio = bibliography.get("Smith2018").unwrap()
+  assert_eq(
+    audio.editors(),
+    Ok([
+      (
+        [{ name: "Smith", given_name: "Stacey Vanek", prefix: "", suffix: "" }],
+        EditorType::Unknown("host"),
+      ),
+      (
+        [{ name: "Plotkin", given_name: "Stanley", prefix: "", suffix: "" }],
+        EditorType::Unknown("participant"),
+      ),
+    ]),
+  )
+}

@@ -5,7 +5,7 @@ typealias @span.Span
 typealias @span.Spanned
 
 ///|
-typealias Array[Spanned[Chunk]] as Chunks
+pub typealias Array[Spanned[Chunk]] as Chunks
 
 ///|
 pub(all) enum Chunk {
@@ -46,7 +46,6 @@ fn Chunk::to_biblatex_string(self : Chunk, is_verbatim : Bool) -> String {
 
 ///|
 pub trait ChunkExt {
-  //  parse(Self)  todo
   format_sentence(Self) -> String
   format_verbatim(Self) -> String
   span(Self) -> Span
@@ -159,7 +158,7 @@ pub impl ChunkExt for Array[Spanned[Chunk]] with to_biblatex_string(
       res += "$"
     }
   }
-  let upper = if extra_brace { 2 } else { 1 }
+  let upper = if extra_brace { 1 } else { 0 }
   for _ in 0..=upper {
     res += "}"
   }

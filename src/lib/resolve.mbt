@@ -21,7 +21,7 @@ pub fn parse_field(
 }
 
 ///|
-struct ContentParser {
+priv struct ContentParser {
   s : Scanner
   verb_field : Bool
   mut current_chunk : Chunk

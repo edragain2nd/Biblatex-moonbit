@@ -76,7 +76,7 @@ fn Time::compare(self : Time, other : Time) -> Int {
 }
 
 ///|
-enum TimeOffset {
+priv enum TimeOffset {
   Utc
   // Offser(positive, hours, minutes)
   Offset(Bool, UInt, UInt)
