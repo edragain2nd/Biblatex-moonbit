@@ -1,4 +1,8 @@
 ///|
+/// An author, editor, or some other person affiliated with a cited work.
+///
+/// When parsed through [`Person::parse`], the whitespace is trimmed from the
+/// fields.
 pub(all) struct Person {
   /// The surname / family name / last name.
   name : String
@@ -12,6 +16,7 @@ pub(all) struct Person {
 } derive(Eq)
 
 ///|
+/// Constructs a new person from a chunk array:
 pub fn Person::parse(chunks : Chunks) -> Person {
   if chunks.iter().any(val => val.v.get().contains("=")) {
     return Person::parse_extended_name_format(chunks)
@@ -20,6 +25,7 @@ pub fn Person::parse(chunks : Chunks) -> Person {
 }
 
 ///|
+/// Constructs new person from chunk slices.
 fn Person::parse_extended_name_format(chunks : Chunks) -> Person {
   let person : Map[String, String] = Map::new()
   for chunk in split_token_lists(chunks, ",") {
@@ -57,7 +63,13 @@ fn Person::parse_bibtex(chunks : Chunks) -> Person {
 }
 
 ///|
+/// Constructs new person from a chunk slice if in the
+/// form `<First> <Prefix> <Last>`.
 fn Person::parse_unified(chunks : Chunks) -> Person {
+  // Find end of first sequence of capitalized words (denominated by first
+  // lowercase word), start of last capitalized sequence.
+  // If there is no subsequent capitalized word, take last one.
+  // Treat verbatim as capital letters.
   let mut word_start = true
   let mut capital = false
   let mut seen_lowercase = false
@@ -131,6 +143,13 @@ fn Person::parse_unified(chunks : Chunks) -> Person {
 }
 
 ///|
+
+///| Constructs new person from chunk slices if in the
+/// form `<Prefix> <Last>, <First>`.
+/// - `s1` corresponds to the part before the comma,
+/// - `s2` to the part behind it.
+///
+/// The arguments should not contain the comma.
 fn Person::parse_single_comma(s1 : Chunks, s2 : Chunks) -> Person {
   if s2.is_empty() ||
     (s2.length() == 1 && ChunkExt::format_verbatim(s2).is_empty()) {
@@ -192,12 +211,23 @@ fn Person::parse_single_comma(s1 : Chunks, s2 : Chunks) -> Person {
 }
 
 ///|
+
+///| Constructs new person from chunk slices if in the
+/// form `<Prefix> <Last>, <Suffix>, <First>`.
+///
+/// `s1`, `s2`, `s3` correspond to the first through third part of the
+/// value respectively.
+///
+/// The arguments should not contain the comma.
 fn Person::parse_two_commas(s1 : Chunks, s2 : Chunks, s3 : Chunks) -> Person {
   let person = Person::parse_single_comma(s1, s3)
   { ..person, suffix: ChunkExt::format_verbatim(s2) }
 }
 
 ///|
+/// This is a ​​proxy type​​ that aliases Array[Person]
+/// ( array of Person objects) to the concrete type ArrayPerson. 
+/// Its primary purpose is to enable trait implementations for the Array generic type when specialized to Person
 pub(all) type ArrayPerson Array[Person]
 
 ///|

@@ -1,4 +1,8 @@
 ///|
+/// Describes the type of a bibliographical entry.
+///
+/// Each type comes with a different set of required and allowable fields that
+/// are taken into consideration in [`Entry::verify`](crate::Entry::verify).
 pub(all) enum EntryType {
   // BibTeX
   Article
@@ -37,9 +41,10 @@ pub(all) enum EntryType {
   Set
   XData
   Unknown(String)
-} derive(Show, Eq)
+} derive(Show, Eq, Compare)
 
 ///|
+/// Describes the optionality mode of the `author` and `editor` fields.
 pub enum AuthorMode {
   /// Neither of the fields are required to be set.
   NoneRequired
@@ -72,6 +77,7 @@ pub fn AuthorMode::possible(self : AuthorMode) -> Array[String] {
 }
 
 ///|
+/// Describes the optionality mode of the `pages` and `chapter` field
 pub(all) enum PagesChapterMode {
   /// No specification for the `page` and `chapter` field is given.
   None
@@ -103,6 +109,7 @@ pub fn PagesChapterMode::possible(self : PagesChapterMode) -> Array[String] {
 }
 
 ///|
+/// Specifies what kinds of fields an entry might have to hold.
 pub(all) struct Requirments {
   /// Fields that have to be present for the entry to be valid.
   required : Array[String]
@@ -122,6 +129,7 @@ pub(all) struct Requirments {
 } derive(Default)
 
 ///|
+/// Parse from a string.
 pub fn EntryType::new(name : String) -> EntryType {
   let name = name.to_lower()
   match name {
@@ -169,16 +177,19 @@ pub fn EntryType::new(name : String) -> EntryType {
 }
 
 ///|
+/// Is this a multi-volume work?
 pub fn EntryType::is_multi_volume(self : EntryType) -> Bool {
   self is (MvBook | MvCollection | MvReference | MvProceedings)
 }
 
 ///|
+/// Is this a single-volume composite work?
 pub fn EntryType::is_collection(self : EntryType) -> Bool {
   self is (Book | Collection | Periodical | Reference | Proceedings)
 }
 
 ///|
+/// Convert into a type native to BibLaTeX.
 pub fn EntryType::to_biblatex(self : EntryType) -> EntryType {
   match self {
     MastersThesis => Thesis
@@ -190,6 +201,7 @@ pub fn EntryType::to_biblatex(self : EntryType) -> EntryType {
 }
 
 ///|
+/// Convert into a type supported by BibTeX.
 pub fn EntryType::to_bibtex(self : EntryType) -> EntryType {
   match self {
     MvBook => Book
@@ -218,6 +230,7 @@ pub fn EntryType::to_bibtex(self : EntryType) -> EntryType {
 }
 
 ///|
+/// Get the required fields for the `EntryType`.
 pub fn EntryType::requirements(self : EntryType) -> Requirments {
   let mut reqs = Requirments::default()
   reqs.needs_date = true
@@ -578,6 +591,8 @@ pub fn EntryType::requirements(self : EntryType) -> Requirments {
 }
 
 ///|
+/// Whether a field with this key should be parsed with commands and most
+/// escapes turned off.
 pub fn is_verbatim_field(key : String) -> Bool {
   match key {
     "file"

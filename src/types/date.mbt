@@ -5,13 +5,18 @@ typealias @unscanny.Scanner
 typealias @unscanny.CharPredicate
 
 ///|
+/// A date or a range of dates and their certainty and exactness.
 pub(all) struct Date {
+  /// The date or the date range.
   value : DateValue
+  /// Indicates whether the sources are sure about the date.
   uncertain : Bool
+  /// Indicates the specificity of the date value.
   approximate : Bool
 } derive(Show, Eq)
 
 ///|
+/// A single date or a range of dates.
 pub enum DateValue {
   At(Datetime)
   After(Datetime)
@@ -20,6 +25,9 @@ pub enum DateValue {
 } derive(Show, Eq)
 
 ///|
+/// Timezone-unaware date and time.
+///
+/// Must specify a year and may specify month, day, and time.
 pub(all) struct Datetime {
   mut year : Int
   mut month : UInt?
@@ -28,21 +36,30 @@ pub(all) struct Datetime {
 } derive(Eq)
 
 ///|
+/// A potentially timezone aware time.
 struct Time {
+  /// The hour (0-23).
   hour : UInt
+  /// The minute (0-59).
   minute : UInt
+  /// The second (0-59).
   second : UInt
+  /// An optional timezone offset.
   offset : TimeOffset?
 } derive(Show, Eq)
 
 ///|
-fn Time::from_hms(hour : UInt, minute : UInt, second : UInt) -> Self? {
+/// Create a new time from hours, minutes, and seconds. Return `None` if
+/// the values are out of range.
+pub fn Time::from_hms(hour : UInt, minute : UInt, second : UInt) -> Self? {
   guard hour <= 23 && minute <= 59 && second <= 59 else { return None }
   Some({ hour, minute, second, offset: None })
 }
 
 ///|
-fn Time::from_hms_offset(
+/// Create a new time from hours, minutes, seconds and an offset. Return
+/// `None` if the values are out of range.
+pub fn Time::from_hms_offset(
   hour : UInt,
   minute : UInt,
   second : UInt,
@@ -53,7 +70,8 @@ fn Time::from_hms_offset(
 }
 
 ///|
-fn Time::to_utc_seconds(self : Time) -> Int {
+/// Return seconds in UTC.
+pub fn Time::to_utc_seconds(self : Time) -> Int {
   let mut seconds = self.hour.reinterpret_as_int() * 3600 +
     self.minute.reinterpret_as_int() * 60 +
     self.second.reinterpret_as_int()
@@ -65,25 +83,30 @@ fn Time::to_utc_seconds(self : Time) -> Int {
 }
 
 ///|
-fn Time::compare(self : Time, other : Time) -> Int {
+pub impl Compare for Time with compare(self, other) {
   if (self.offset is Some(_) && other.offset is Some(_)) ||
     (self.offset is None && other.offset is None) {
     self.to_utc_seconds().compare(other.to_utc_seconds())
   } else {
-    // FIXME:
     0
   }
 }
 
 ///|
-priv enum TimeOffset {
+/// A timezone offset.
+pub enum TimeOffset {
+  /// Time is UTC. Do not assume an origin timezone.
   Utc
-  // Offser(positive, hours, minutes)
+  /// Offser(positive, hours, minutes)
+  /// positive: Whether the time is ahead of UTC.
+  /// hours: The hour offset.
+  /// minutes: The minute offset.
   Offset(Bool, UInt, UInt)
 } derive(Show, Eq)
 
 ///|
-fn TimeOffset::offset(
+/// Create a new offset.
+pub fn TimeOffset::offset(
   positive : Bool,
   hours : UInt,
   minutes : UInt,
@@ -92,7 +115,8 @@ fn TimeOffset::offset(
 }
 
 ///|
-fn TimeOffset::offset_hour(hour : Int) -> TimeOffset {
+/// Create a new offset from an hour.
+pub fn TimeOffset::offset_hour(hour : Int) -> TimeOffset {
   if hour < 0 {
     Offset(false, (-hour).reinterpret_as_uint(), 0)
   } else {
@@ -101,6 +125,7 @@ fn TimeOffset::offset_hour(hour : Int) -> TimeOffset {
 }
 
 ///|
+/// Convert to seconds.
 fn TimeOffset::to_seconds(self : TimeOffset) -> Int {
   match self {
     Utc => 0
@@ -116,6 +141,7 @@ fn TimeOffset::to_seconds(self : TimeOffset) -> Int {
 }
 
 ///|
+/// Parse a date from chunks.
 pub fn Date::parse(chunks : Chunks) -> Date raise TypeError {
   let span = ChunkExt::span(chunks)
   let date = ChunkExt::format_verbatim(chunks).to_upper()
@@ -226,6 +252,7 @@ pub fn Date::parse(chunks : Chunks) -> Date raise TypeError {
 }
 
 ///|
+/// Create a new date from `year`, `month`, and `day` chunks.
 pub fn Date::parse_three_fields(
   year : Chunks,
   month : Chunks?,
@@ -635,6 +662,7 @@ fn parse_unsigned_int(s : Scanner, lb : Int, ub : Int) -> UInt? {
 }
 
 ///|
+/// Parse a string with a plus/minus and one to four digits into an integer.
 fn parse_year(s : Scanner) -> Int raise TypeError {
   let pos = s.cursor()
   parse_int(s, 4, 4).or_error(
@@ -653,6 +681,7 @@ fn parse_short_year(s : Scanner) -> Int raise TypeError {
 }
 
 ///|
+/// Parse the month in the 0-11 range.
 fn parse_month(s : Scanner) -> UInt raise TypeError {
   let pos = s.cursor()
   let month = parse_unsigned_int(s, 1, 2).or_error(
@@ -665,6 +694,7 @@ fn parse_month(s : Scanner) -> UInt raise TypeError {
 }
 
 ///|
+/// Parse the day in the 0-30 range.
 fn parse_day(s : Scanner) -> UInt raise TypeError {
   let pos = s.cursor()
   let day = parse_unsigned_int(s, 1, 2).or_error(
@@ -677,6 +707,7 @@ fn parse_day(s : Scanner) -> UInt raise TypeError {
 }
 
 ///|
+/// Parse the hour in the 0-23 range.
 fn parse_hour(s : Scanner) -> UInt raise TypeError {
   let pos = s.cursor()
   let hour = parse_unsigned_int(s, 1, 2).or_error(
@@ -689,6 +720,7 @@ fn parse_hour(s : Scanner) -> UInt raise TypeError {
 }
 
 ///|
+/// Parse minutes or seconds in the 0-59 range.
 fn parse_minutes_or_seconds(s : Scanner) -> UInt raise TypeError {
   let pos = s.cursor()
   let num = parse_unsigned_int(s, 1, 2).or_error(
@@ -701,6 +733,7 @@ fn parse_minutes_or_seconds(s : Scanner) -> UInt raise TypeError {
 }
 
 ///|
+/// Parse an offset.
 fn parse_offset(s : Scanner) -> TimeOffset raise TypeError {
   ignore(s.eat_whitespace())
   let pos = s.cursor()
@@ -723,6 +756,7 @@ fn parse_offset(s : Scanner) -> TimeOffset raise TypeError {
 }
 
 ///|
+/// Parse a hyphen.
 pub fn parse_hyphen(s : Scanner) -> Unit raise TypeError {
   let pos = s.cursor()
   ignore(s.eat_whitespace())
@@ -734,6 +768,7 @@ pub fn parse_hyphen(s : Scanner) -> Unit raise TypeError {
 }
 
 ///|
+/// Parse a colon.
 pub fn parse_colon(s : Scanner) -> Unit raise TypeError {
   let pos = s.cursor()
   ignore(s.eat_whitespace())
@@ -759,6 +794,7 @@ fn days_in_month(month : UInt, year : Int) -> UInt {
 }
 
 ///|
+/// Used to resolve month abbreviations to their respective values.
 pub fn get_month_for_abbr(month : String) -> (String, Int)? {
   match month.to_lower() {
     "jan" => Some(("January", 0))
@@ -778,6 +814,7 @@ pub fn get_month_for_abbr(month : String) -> (String, Int)? {
 }
 
 ///|
+/// Used to resolve month names to their respective values.
 fn get_month_for_name(month : String) -> UInt? {
   match month.to_lower() {
     "january" => Some(0)

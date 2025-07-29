@@ -2,10 +2,11 @@
 typealias @span.Spanned
 
 ///|
+/// Fully parse a field, resolving abbreviations and LaTeX commands.
 pub fn parse_field(
   key : String,
   field : Field,
-  abbreviations : Array[Pair]
+  abbreviations : Array[Pair],
 ) -> Chunks raise ParseError {
   let chunks : Array[Spanned[Chunk]] = []
   for e in field.inner() {
@@ -34,7 +35,7 @@ priv struct ContentParser {
 fn ContentParser::new(
   key : String,
   field : String,
-  offset : Int
+  offset : Int,
 ) -> ContentParser {
   {
     s: Scanner::new(field),
@@ -183,7 +184,7 @@ fn ContentParser::backslash(self : ContentParser) -> String raise ParseError {
   match self.s.peek() {
     Some(c) if c != '^' &&
       c != '~' &&
-      @utils.is_escapable(c, self.verb_field, true) => {
+      @types.is_escapable(c, self.verb_field, true) => {
       ignore(self.s.eat())
       c.to_string()
     }
@@ -287,11 +288,12 @@ fn ContentParser::default_chunk(depth : Int) -> Chunk {
 }
 
 ///|
+/// Resolves `Chunk::Abbreviation` items to their respective string values.
 fn resolve_abbreviation(
   key : String,
   abbr : String,
   span : Span,
-  map : Array[Pair]
+  map : Array[Pair],
 ) -> Chunks raise ParseError {
   let fields = map.iter().find_first(e => e.key.v == abbr).map(e => e.value.v)
   match fields {
@@ -312,6 +314,9 @@ fn resolve_abbreviation(
 }
 
 ///|
+/// Best-effort evaluation of LaTeX commands with a focus on diacritics.
+/// Will dump the command arguments if evaluation is not possible.
+/// Nested commands are not supported.
 fn execute_command(command : String, arg : String?) -> String {
   fn last_char_combine(v : String?, combine : Char) -> String {
     if v is Some(v) {
@@ -436,6 +441,7 @@ fn execute_command(command : String, arg : String?) -> String {
 }
 
 ///|
+/// Simplifies a chunk array by collapsing neighboring Normal or Verbatim chunks.
 fn flatten(chunks : Chunks) -> Unit {
   let mut i = 1
   for {
@@ -464,6 +470,8 @@ fn flatten(chunks : Chunks) -> Unit {
 }
 
 ///|
+/// Characters that are the name of a single-char command
+/// that automatically terminates.
 fn is_single_char_func(c : Char, ws : Bool) -> Bool {
   c is ('"' | '´' | '`' | '\'' | '^' | '~' | '=' | '.' | '\\' | '-') ||
   (ws && c is ('b' | 'c' | 'd' | 'H' | 'k' | 'r' | 'u' | 'v'))

@@ -8,13 +8,22 @@ typealias @span.Spanned
 pub typealias Array[Spanned[Chunk]] as Chunks
 
 ///|
+/// Represents one part of a field value.
 pub(all) enum Chunk {
+  /// Normal values within quotes or single braces subject to
+  /// capitalization formatting.
   Normal(String)
+  /// Values nested in braces that are to be printed like specified
+  /// in the file. Escapes keywords.
+  ///
+  /// Example: `"Inside {NASA}"` or `{Memes are {gReAT}}`.
   Verbatim(String)
+  /// Values nested in dollar signs.
   Math(String)
 } derive(Eq, Show)
 
 ///|
+/// Get the string contained in the chunk.
 pub fn Chunk::get(self : Chunk) -> String {
   match self {
     Normal(s) => s
@@ -24,6 +33,7 @@ pub fn Chunk::get(self : Chunk) -> String {
 }
 
 ///|
+/// Get the string contained in the chunk and whether it is verbatim.
 fn Chunk::get_and_verb(self : Chunk) -> (String, Bool) {
   match self {
     Normal(s) => (s, false)
@@ -33,10 +43,16 @@ fn Chunk::get_and_verb(self : Chunk) -> (String, Bool) {
 }
 
 ///|
+/// /// Get the string contained in the chunk with the characters escaped.
+///
+/// There is no difference for BibTeX and BibLaTeX here, so there is only one function applicable to both.
+///
+/// The `is_verbatim` argument indicates whether this string is intended for
+/// a verbatim field like `file` with limited escapes.
 fn Chunk::to_biblatex_string(self : Chunk, is_verbatim : Bool) -> String {
   let mut s : String = ""
   for c in self.get().iter() {
-    if @utils.is_escapable(c, is_verbatim, false) {
+    if is_escapable(c, is_verbatim, false) {
       s += "\\"
     }
     s += c.to_string()
@@ -45,10 +61,24 @@ fn Chunk::to_biblatex_string(self : Chunk, is_verbatim : Bool) -> String {
 }
 
 ///|
+/// usage:
+/// ```moonbit
+/// let chunks : Chunks = [{v: Normal("Monroe, Brian Albert"), span: {start: 2147483647, end: 2147483647}}]
+/// let s1 = ChunkExt::format_sentence(chunks)
+/// let s2 = ChunkExt::format_verbatim(chunks)
+/// let span = ChunkExt::span(chunks)
+/// let s3 = ChunkExt::to_biblatex_string(chunks,false)
+/// ```
 pub trait ChunkExt {
+  /// Format the chunks in sentence case.
   format_sentence(Self) -> String
+  /// Format the chunks verbatim.
   format_verbatim(Self) -> String
+  /// Output a span for all chunks in the collection.
   span(Self) -> Span
+  /// Serialize the chunks into a BibLaTeX string.
+  ///
+  /// There is no difference for BibTeX and BibLaTeX here, so there is only one function applicable to both.
   to_biblatex_string(Self, is_verbatim : Bool) -> String
 }
 
@@ -197,7 +227,7 @@ pub fn join_chunk_list(chunks : Chunks, sep : String) -> Chunks {
   res
 }
 
-///| Splits chunk vectors that are a token lists as defined per the
+///| Splits chunk arrays that are a token lists as defined per the
 /// [BibLaTeX Manual][manual] p. 16 along occurrences of the keyword.
 ///
 /// [manual]: http://ctan.ebinger.cc/tex-archive/macros/latex/contrib/biblatex/doc/biblatex.pdf
@@ -352,7 +382,7 @@ pub fn split_token_lists_with_kw(
   out
 }
 
-///| Splits a chunk vector into two at the first occurrence of the character `c`.
+///| Splits a chunk array into two at the first occurrence of the character `c`.
 /// `omit` controls whether the output will contain `c`.
 pub fn split_at_normal_char(
   src : Chunks,
@@ -392,7 +422,7 @@ pub fn split_at_normal_char(
   }
 }
 
-///| Returns two chunk vectors with `src` split at some chunk index and
+///| Returns two chunk arrays with `src` split at some chunk index and
 /// the string byte index `str_idx` within that chunk.
 pub fn split_values(
   src : Chunks,
@@ -446,6 +476,13 @@ pub fn count_num_char(chunks : Chunks, c : Char) -> Int {
 }
 
 ///|
+/// This generic function parses a Chunks data structure into a value of type T, where T must implement the Type trait.
+/// example : 
+/// ```moonbit
+/// let chunks : Chunks = [{v: Normal("Monroe, Brian Albert"), span: {start: 2147483647, end: 2147483647}}]
+/// let res : ArrayPerson = parse_chunks(chunks)
+/// inspect(res.inner(),content=("[Brian Albert Monroe]"))
+/// ```
 pub fn[T : Type] parse_chunks(chunks : Chunks) -> T raise TypeError {
   T::from_chunks(chunks)
 }

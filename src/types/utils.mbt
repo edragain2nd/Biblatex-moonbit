@@ -1,4 +1,22 @@
 ///|
+/// Characters that can be escaped.
+///
+/// In read mode (`read_char = true`), colons are also converted to an unescaped
+/// string to keep compatibility with Zotero. Zotero escapes colons when
+/// exporting verbatim fields. This crate doesn't escape colons when exporting.
+///
+/// List of reserved characters here
+/// http://latexref.xyz/Reserved-characters.html
+pub fn is_escapable(c : Char, verb : Bool, read_char : Bool) -> Bool {
+  match c {
+    '{' | '}' | '\\' => true
+    '~' | '^' | '#' | '&' | '%' | '$' | '_' if not(verb) => true
+    ':' if read_char => true
+    _ => false
+  }
+}
+
+///|
 fn String::trim_space_start(self : String) -> String {
   let s = StringBuilder::new()
   s.write_iter(self.iter().drop_while(c => c.is_whitespace()))

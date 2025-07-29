@@ -7,9 +7,9 @@
     "moonbitlang/x": "0.4.31"
   },
   "readme": "README.md",
-  "repository": "",
+  "repository": "https://github.com/edragain2nd/Biblatex-moonbit.git",
   "license": "Apache-2.0",
-  "keywords": [],
-  "description": "",
+  "keywords": ["latex","bibtex","biblatex" ,"biber" ,"bibliography"],
+  "description": "A moonbit cake for parsing and writing BibTeX and BibLaTeX files.",
   "source": "src"
 }

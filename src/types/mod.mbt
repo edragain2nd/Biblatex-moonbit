@@ -1,4 +1,5 @@
 ///|
+/// An error that may occur while parsing the chunks in a field into a specific
 pub(all) suberror TypeError (Span, TypeErrorKind) derive(Eq)
 
 ///|
@@ -14,6 +15,10 @@ pub impl Show for TypeError with output(self, logger) {
 }
 
 ///|
+/// Error conditions that might occur while parsing the chunks in a field into a specific
+/// [`Type`].
+///
+/// Also see [`TypeError`].
 pub(all) enum TypeErrorKind {
   /// The date range was open on both sides.
   UndefinedRange
@@ -68,8 +73,14 @@ pub impl Show for TypeErrorKind with to_string(self) {
 }
 
 ///|
+/// Convert Bib(La)TeX data types from and to chunk slices.
 pub trait Type {
+  /// Parse the type from chunks.
   from_chunks(chunks : Chunks) -> Self raise TypeError
+  /// Serialize the type into chunks.
+  ///
+  /// This produces chunks with _detached spans_ that must not be used to
+  /// index the source file.
   to_chunks(Self) -> Chunks
 }
 
@@ -113,6 +124,9 @@ pub impl Type for String with to_chunks(self) {
 }
 
 ///|
+/// This is a ​​proxy type​​ that aliases Array[Chunks]
+/// (array of Chunks objects) to the concrete type ArrayChunks. 
+/// Its primary purpose is to enable trait implementations for the Array generic type when specialized to Chunks
 pub(all) type ArrayChunks Array[Chunks]
 
 ///|
@@ -157,14 +171,20 @@ pub impl Type for ArrayString with to_chunks(self) {
 }
 
 ///|
+/// A value that could be either a typed value or a literal string.
 pub(all) enum PermissiveType[T] {
   /// A typed version of the value.
   Typed(T)
   /// A literal string, for example `"Reprinted, and revised edition"`.
   Chunks(Chunks)
-}derive(Show,Eq)
+} derive(Show, Eq)
 
 ///|
+/// usage:
+/// ```moonbit
+/// let chunks : Chunks = [{v: Normal("Monroe, Brian Albert"), span: {start: 2147483647, end: 2147483647}}]
+/// let res : PermissiveType[ArrayPerson] = PermissiveType::from_chunks(chunks)
+/// ```
 pub fn[T : Type] PermissiveType::from_chunks(
   chunks : Chunks,
 ) -> PermissiveType[T] {
@@ -177,6 +197,14 @@ pub fn[T : Type] PermissiveType::from_chunks(
 }
 
 ///|
+
+///|
+/// usage:
+/// ```moonbit
+/// let chunks : Chunks = [{v: Normal("Monroe, Brian Albert"), span: {start: 2147483647, end: 2147483647}}]
+/// let res : PermissiveType[ArrayPerson] = PermissiveType::from_chunks(chunks)
+/// let chunks_ = PermissiveType::to_chunks(res)
+/// ```
 pub fn[T : Type] PermissiveType::to_chunks(self : PermissiveType[T]) -> Chunks {
   match self {
     Typed(val) => val.to_chunks()
@@ -208,6 +236,7 @@ pub impl Type for Array[PermissiveType[Language]] with to_chunks(self) {
 }
 
 ///|
+/// Defines the pagination scheme to use for formatting purposes.
 pub(all) enum Pagination {
   Page
   Column
@@ -250,6 +279,9 @@ pub impl Type for Pagination with to_chunks(self) {
 }
 
 ///|
+/// Which role the according editor had.
+///
+/// The value of the `editor` through `editorc` fields.
 pub(all) enum EditorType {
   Editor
   Compiler
@@ -261,7 +293,7 @@ pub(all) enum EditorType {
   Organizer
   Director
   Unknown(String)
-} derive(Show,Eq)
+} derive(Show, Eq)
 
 ///|
 pub fn EditorType::from_str(s : String) -> EditorType? {
@@ -277,7 +309,7 @@ pub fn EditorType::from_str(s : String) -> EditorType? {
     "director" => Director
     _ => Unknown(s)
   }
-    Some(editor)
+  Some(editor)
 }
 
 ///|
@@ -399,6 +431,9 @@ pub impl Type for Range with to_chunks(self) {
 }
 
 ///|
+/// This is a ​​proxy type​​ that aliases Array[Range]
+/// (array of Range objects) to the concrete type ArrayRange. 
+/// Its primary purpose is to enable trait implementations for the Array generic type when specialized to Range
 pub(all) type ArrayRange Array[Range]
 
 ///|

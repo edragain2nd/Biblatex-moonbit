@@ -1,5 +1,5 @@
 ///|
-typealias @types.(TypeError, Chunk, ArrayString,TypeErrorKind)
+typealias @types.(TypeError, Chunk, ArrayString, TypeErrorKind)
 
 ///|
 typealias Array[Spanned[Chunk]] as Chunks
@@ -14,21 +14,30 @@ traitalias @types.(Type, ChunkExt)
 fnalias @types.parse_chunks
 
 ///|
-pub(all) struct Bibliography {
-  mut entries : Array[Entry]
+/// A fully parsed bibliography.
+pub struct Bibliography {
+  /// The bibliography entries.
+  entries : Array[Entry]
+  /// Maps from citation keys to indices in `items`.
   mut keys : Map[String, Int]
-} derive(Default, Show)
+} derive(Default, Show, Eq)
 
 ///|
 pub(all) struct Entry {
+  /// The citation key.
   key : String
+  /// Denotes the type of bibliography item (e.g., `Article`).
   entry_type : EntryType
+  /// Maps from field names to their associated chunk vectors.
   fields : Map[String, Chunks]
 } derive(Show, Eq)
 
 ///|
+/// Errors that can occur when retrieving a field of an [`Entry`].
 pub(all) enum RetrievalError {
+  /// The entry has no field with this name.
   Missing(String)
+  /// The field contains malformed data.
   TypeError(TypeError)
 } derive(Eq)
 
@@ -55,16 +64,20 @@ fn[T] convert_result(err : Result[T, RetrievalError]) -> Result[T?, TypeError] {
 }
 
 ///|
+/// Create a new, empty bibliography.
 pub fn Bibliography::new() -> Bibliography {
   Bibliography::default()
 }
 
 ///|
+/// Parse a bibliography from a source string.
 pub fn Bibliography::parse(src : String) -> Result[Bibliography, ParseError] {
   try? Bibliography::from_raw(RawBibliogrphy::parse(src))
 }
 
 ///|
+/// Construct a bibliography from a raw bibliography, with the `xdata` and
+/// `crossref` links resolved.
 pub fn Bibliography::from_raw(
   raw : RawBibliogrphy,
 ) -> Bibliography raise ParseError {
@@ -98,16 +111,19 @@ pub fn Bibliography::from_raw(
 }
 
 ///|
+/// The number of bibliography entries.
 pub fn Bibliography::length(self : Bibliography) -> Int {
   self.entries.length()
 }
 
 ///|
+/// Whether the bibliography is empty.
 pub fn Bibliography::is_empty(self : Bibliography) -> Bool {
   self.entries.is_empty()
 }
 
 ///|
+/// Returns the entry with the given cite key.
 pub fn Bibliography::get(self : Bibliography, key : String) -> Entry? {
   let index = self.keys.get(key)
   guard index is Some(_) else { None }
@@ -115,6 +131,10 @@ pub fn Bibliography::get(self : Bibliography, key : String) -> Entry? {
 }
 
 ///|
+/// Insert an entry into the bibliography.
+///
+/// If an entry with the same cite key is already present, the entry is
+/// updated and the old entry is returned.
 pub fn Bibliography::insert(self : Bibliography, entry : Entry) -> Entry? {
   if self.get(entry.key) is Some(prev) {
     let index = self.keys.get(entry.key).unwrap()
@@ -137,6 +157,7 @@ pub fn Bibliography::insert(self : Bibliography, entry : Entry) -> Entry? {
 }
 
 ///|
+/// Remove the entry with the given cite key.
 pub fn Bibliography::remove(self : Bibliography, key : String) -> Entry? {
   let index = match self.keys.get(key) {
     Some(index) => index
@@ -149,6 +170,9 @@ pub fn Bibliography::remove(self : Bibliography, key : String) -> Entry? {
 }
 
 ///|
+/// Add an alias for a cite key.
+///
+/// Does nothing if no entry with the given cite key exists.
 pub fn[T : Show] Bibliography::alias_(
   self : Bibliography,
   key : String,
@@ -160,16 +184,19 @@ pub fn[T : Show] Bibliography::alias_(
 }
 
 ///|
+/// An iterator over the bibliography's entries.
 pub fn Bibliography::iter(self : Bibliography) -> Iter[Entry] {
   self.entries.iter()
 }
 
 ///|
+/// An iterator over the bibliography's entry keys.
 pub fn Bibliography::keys(self : Bibliography) -> Iter[String] {
   self.entries.iter().map(entry => entry.key)
 }
 
 ///|
+/// Consume this struct and return a vector of the bibliography's entries.
 pub fn Bibliography::to_array(self : Bibliography) -> Array[Entry] {
   self.entries
 }
@@ -186,6 +213,7 @@ pub fn Bibliography::write_biblatex(
 }
 
 ///|
+/// Serialize this bibliography into a BibLaTeX string.
 pub fn Bibliography::to_biblatex_string(self : Bibliography) -> String {
   let mut res = ""
   for entry in self.entries {
@@ -196,7 +224,7 @@ pub fn Bibliography::to_biblatex_string(self : Bibliography) -> String {
 
 // FIXME: not related to file IO, only debugger log​
 
-///|
+///|.
 pub fn Bibliography::write_bibtex(
   self : Bibliography,
   logger : &Logger,
@@ -206,6 +234,7 @@ pub fn Bibliography::write_bibtex(
 }
 
 ///|
+/// Serialize this bibliography into a BibTeX string.
 pub fn Bibliography::to_bibtex_string(self : Bibliography) -> String {
   let mut res = ""
   for entry in self.entries {
@@ -215,11 +244,15 @@ pub fn Bibliography::to_bibtex_string(self : Bibliography) -> String {
 }
 
 ///|
+/// Construct new, empty entry.
 pub fn Entry::new(key : String, entry_type : EntryType) -> Entry {
   { key, entry_type, fields: Map::new() }
 }
 
 ///|
+/// Get the chunk slice of a field.
+///
+/// The field key must be lowercase.
 pub fn Entry::get(self : Entry, key : String) -> Chunks? {
   self.fields.get(key)
 }
@@ -241,16 +274,23 @@ pub fn[T : Type] Entry::get_as(
 }
 
 ///|
+/// Set the chunk slice for a field.
+///
+/// The field key is lowercase before insertion.
 pub fn Entry::set(self : Entry, key : String, chunks : Chunks) -> Unit {
   self.fields[key.to_lower()] = chunks
 }
 
 ///|
+/// Set the value of a field as a specific type.
+///
+/// The field key is lowercase before insertion.
 pub fn[T : Type] Entry::set_as(self : Entry, key : String, value : T) -> Unit {
   self.set(key, value.to_chunks())
 }
 
 ///|
+/// Remove a field from the entry.
 pub fn Entry::remove(self : Entry, key : String) -> Chunks? {
   let res = self.fields.get(key)
   if res is None {
@@ -262,6 +302,7 @@ pub fn Entry::remove(self : Entry, key : String) -> Chunks? {
 }
 
 ///|
+/// The parents of an entry in a semantic sense (`crossref` and `xref`).
 pub fn Entry::parents(self : Entry) -> Result[Array[String], TypeError] {
   let parents = []
   let res : Result[String, RetrievalError] = self.get_as("crossref")
@@ -286,6 +327,7 @@ pub fn Entry::parents(self : Entry) -> Result[Array[String], TypeError] {
 }
 
 ///|
+/// Verify if the entry has the appropriate fields for its [`EntryType`].
 pub fn Entry::verify(self : Entry) -> Report {
   let reqs = self.entry_type.requirements()
   let missing = []
@@ -466,6 +508,7 @@ pub fn Entry::verify(self : Entry) -> Report {
 }
 
 ///|
+/// Serialize this entry into a BibLaTeX string.
 pub fn Entry::to_biblatex_string(self : Entry) -> String {
   let mut biblatex = ""
   let ty = self.entry_type.to_biblatex()
@@ -486,6 +529,9 @@ pub fn Entry::to_biblatex_string(self : Entry) -> String {
 }
 
 ///|
+/// Serialize this entry into a BibTeX string.
+///
+/// This function can return an error if there is a malformed date field.
 pub fn Entry::to_bibtex_string(self : Entry) -> Result[String, TypeError] {
   let mut bibtex = ""
   let ty = self.entry_type.to_bibtex()
@@ -529,6 +575,7 @@ pub fn Entry::to_bibtex_string(self : Entry) -> Result[String, TypeError] {
 }
 
 ///|
+/// Get an entry but return None for empty chunk slices.
 fn Entry::get_non_empty(self : Entry, key : String) -> Chunks? {
   let entry = self.get(key)
   if entry is None {
@@ -544,6 +591,7 @@ fn Entry::get_non_empty(self : Entry, key : String) -> Chunks? {
 }
 
 ///|
+/// Resolves all data dependencies defined by `crossref` and `xdata` fields.
 fn Entry::resolve_crossrefs(
   self : Entry,
   bib : Bibliography,
@@ -576,6 +624,7 @@ fn Entry::resolve_crossrefs(
 }
 
 ///|
+/// Resolve data dependencies using another entry.
 fn Entry::resolve_single_crossref(
   self : Entry,
   crossref : Entry,
@@ -664,6 +713,7 @@ fn Entry::resolve_single_crossref(
 }
 
 ///|
+/// A report of the validity of an `Entry`. Can be obtained by calling [`Entry::verify`].
 pub(all) struct Report {
   /// These fields were missing, although they are required for the entry type.
   missing : Array[String]
