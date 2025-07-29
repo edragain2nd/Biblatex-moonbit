@@ -1,0 +1,30 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "edragain2nd/biblatex/span"
+
+// Values
+
+// Types and methods
+pub(all) struct Span {
+  start : Int
+  end : Int
+}
+fn Span::is_empty(Self) -> Bool
+impl Eq for Span
+impl Show for Span
+
+pub(all) struct Spanned[T] {
+  v : T
+  span : Span
+}
+fn[T] Spanned::detached(T) -> Self[T]
+fn[T] Spanned::is_detached(Self[T]) -> Bool
+fn[T, U] Spanned::map(Self[T], (T) -> U) -> Self[U]
+fn[T] Spanned::new(T, Span) -> Self[T]
+fn[T] Spanned::zero(T) -> Self[T]
+impl[T : Eq] Eq for Spanned[T]
+impl[T : Show] Show for Spanned[T]
+
+// Type aliases
+
+// Traits
+

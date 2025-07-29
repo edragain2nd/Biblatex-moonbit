@@ -1,0 +1,300 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "edragain2nd/biblatex/types"
+
+import(
+  "edragain2nd/biblatex/span"
+  "edragain2nd/unscanny"
+)
+
+// Values
+fn chunk_chars(Array[@span.Spanned[Chunk]]) -> Iter[(Char, Bool)]
+
+fn count_num_char(Array[@span.Spanned[Chunk]], Char) -> Int
+
+fn get_month_for_abbr(String) -> (String, Int)?
+
+fn is_escapable(Char, Bool, Bool) -> Bool
+
+fn join_chunk_list(Array[@span.Spanned[Chunk]], String) -> Array[@span.Spanned[Chunk]]
+
+fn[T : Type] parse_chunks(Array[@span.Spanned[Chunk]]) -> T raise TypeError
+
+fn parse_colon(@unscanny.Scanner) -> Unit raise TypeError
+
+fn parse_hyphen(@unscanny.Scanner) -> Unit raise TypeError
+
+fn split_at_normal_char(Array[@span.Spanned[Chunk]], Char, Bool) -> (Array[@span.Spanned[Chunk]], Array[@span.Spanned[Chunk]])
+
+fn split_token_lists(Array[@span.Spanned[Chunk]], String) -> Array[Array[@span.Spanned[Chunk]]]
+
+fn split_token_lists_with_kw(Array[@span.Spanned[Chunk]], String) -> Array[Array[@span.Spanned[Chunk]]]
+
+fn split_values(Array[@span.Spanned[Chunk]], Int, Int) -> (Array[@span.Spanned[Chunk]], Array[@span.Spanned[Chunk]])
+
+// Types and methods
+pub(all) type ArrayChunks Array[Array[@span.Spanned[Chunk]]]
+fn ArrayChunks::inner(Self) -> Array[Array[@span.Spanned[Chunk]]]
+impl Type for ArrayChunks
+impl Eq for ArrayChunks
+impl Show for ArrayChunks
+
+pub(all) type ArrayPerson Array[Person]
+fn ArrayPerson::inner(Self) -> Array[Person]
+impl Type for ArrayPerson
+impl Eq for ArrayPerson
+impl Show for ArrayPerson
+
+pub(all) type ArrayRange Array[Range]
+fn ArrayRange::inner(Self) -> Array[Range]
+impl Type for ArrayRange
+impl Eq for ArrayRange
+impl Show for ArrayRange
+
+pub(all) type ArrayString Array[String]
+fn ArrayString::inner(Self) -> Array[String]
+impl Type for ArrayString
+impl Eq for ArrayString
+impl Show for ArrayString
+
+pub(all) enum Chunk {
+  Normal(String)
+  Verbatim(String)
+  Math(String)
+}
+fn Chunk::get(Self) -> String
+impl Eq for Chunk
+impl Show for Chunk
+
+pub(all) struct Date {
+  value : DateValue
+  uncertain : Bool
+  approximate : Bool
+}
+fn Date::parse(Array[@span.Spanned[Chunk]]) -> Self raise TypeError
+fn Date::parse_three_fields(Array[@span.Spanned[Chunk]], Array[@span.Spanned[Chunk]]?, Array[@span.Spanned[Chunk]]?) -> Self raise TypeError
+fn Date::to_fieldset(Self) -> Array[(String, String)]
+impl Type for Date
+impl Eq for Date
+impl Show for Date
+
+pub enum DateValue {
+  At(Datetime)
+  After(Datetime)
+  Before(Datetime)
+  Between(Datetime, Datetime)
+}
+fn DateValue::to_fieldset(Self) -> Array[(String, String)]
+impl Eq for DateValue
+impl Show for DateValue
+
+pub(all) struct Datetime {
+  mut year : Int
+  mut month : UInt?
+  mut day : UInt?
+  mut time : Time?
+}
+fn Datetime::to_fieldset(Self) -> Array[(String, String)]
+impl Compare for Datetime
+impl Eq for Datetime
+impl Show for Datetime
+
+pub(all) enum EditorType {
+  Editor
+  Compiler
+  Founder
+  Continuator
+  Redactor
+  Reviser
+  Collaborator
+  Organizer
+  Director
+  Unknown(String)
+}
+fn EditorType::from_str(String) -> Self?
+impl Type for EditorType
+impl Eq for EditorType
+impl Show for EditorType
+
+pub(all) enum Gender {
+  SingularFemale
+  SingularMale
+  SingularNeuter
+  PluralFemale
+  PluralMale
+  PluralNeuter
+}
+fn Gender::coalesce(Array[Self]) -> Self?
+fn Gender::plural(Self) -> Self
+fn Gender::singular(Self) -> Self
+impl Type for Gender
+impl Show for Gender
+
+pub(all) enum Language {
+  Basque
+  Bulgarian
+  Catalan
+  Croatian
+  Czech
+  Danish
+  Dutch
+  EnglishUS
+  EnglishUK
+  EnglishCA
+  EnglishAUS
+  EnglishNZ
+  Estonian
+  Finnish
+  French
+  German
+  GermanAT
+  GermanCH
+  GermanNew
+  GermanATNew
+  GermanCHNew
+  Greek
+  Hungarian
+  Icelandic
+  Italian
+  Latvian
+  Lithuanian
+  Marathi
+  NorwegianBokmal
+  NorwegainNynorsk
+  Polish
+  PortugueseBR
+  Portuguese
+  Romanian
+  Russian
+  SerbianLatin
+  SerbianCyrillic
+  Slovak
+  Slovene
+  Spanish
+  Swedish
+  Turkish
+  Ukrainian
+}
+fn Language::from_str(String) -> Self?
+impl Type for Language
+impl Eq for Language
+impl Show for Language
+
+pub enum Numeral {
+  I
+  V
+  X
+  L
+  C
+  D
+  M
+}
+fn Numeral::ascii_lower(Self) -> Char
+fn Numeral::ascii_upper(Self) -> Char
+fn Numeral::from_char(Char) -> Self?
+fn Numeral::value(Self) -> Int16
+
+pub(all) enum Pagination {
+  Page
+  Column
+  Line
+  Verse
+  Section
+  Paragraph
+}
+fn Pagination::from_str(String) -> Self?
+impl Type for Pagination
+impl Show for Pagination
+
+pub(all) enum PermissiveType[T] {
+  Typed(T)
+  Chunks(Array[@span.Spanned[Chunk]])
+}
+fn[T : Type] PermissiveType::from_chunks(Array[@span.Spanned[Chunk]]) -> Self[T]
+fn[T : Type] PermissiveType::to_chunks(Self[T]) -> Array[@span.Spanned[Chunk]]
+impl[T : Eq] Eq for PermissiveType[T]
+impl[T : Show] Show for PermissiveType[T]
+
+pub(all) struct Person {
+  name : String
+  given_name : String
+  prefix : String
+  suffix : String
+}
+fn Person::parse(Array[@span.Spanned[Chunk]]) -> Self
+impl Eq for Person
+impl Show for Person
+
+pub(all) struct Range {
+  start : Int
+  end : Int
+}
+impl Type for Range
+impl Eq for Range
+impl Show for Range
+
+pub struct Roman {
+  numerals : Array[Numeral]
+}
+fn Roman::from(Int16) -> Self
+fn Roman::parse(String) -> Self?
+fn Roman::value(Self) -> Int16
+
+type Time
+fn Time::from_hms(UInt, UInt, UInt) -> Self?
+fn Time::from_hms_offset(UInt, UInt, UInt, TimeOffset) -> Self?
+fn Time::to_utc_seconds(Self) -> Int
+impl Compare for Time
+impl Eq for Time
+impl Show for Time
+
+pub enum TimeOffset {
+  Utc
+  Offset(Bool, UInt, UInt)
+}
+fn TimeOffset::offset(Bool, UInt, UInt) -> Self
+fn TimeOffset::offset_hour(Int) -> Self
+impl Eq for TimeOffset
+impl Show for TimeOffset
+
+pub(all) suberror TypeError (@span.Span, TypeErrorKind)
+impl Eq for TypeError
+impl Show for TypeError
+
+pub(all) enum TypeErrorKind {
+  UndefinedRange
+  DayOutOfRange
+  MonthOutOfRange
+  InvalidNumber
+  MissingNumber
+  WrongNumberOfDigits
+  InvalidFormat
+  UnknownGender
+  InvalidIntegerRange
+  UnknownPagination
+  UnknownEditorType
+  UnknownLangId
+  YearZeroCE
+}
+impl Eq for TypeErrorKind
+impl Show for TypeErrorKind
+
+// Type aliases
+pub typealias Array[@span.Spanned[Chunk]] as Chunks
+
+// Traits
+pub trait ChunkExt {
+  format_sentence(Self) -> String
+  format_verbatim(Self) -> String
+  span(Self) -> @span.Span
+  to_biblatex_string(Self, Bool) -> String
+}
+impl ChunkExt for Array[@span.Spanned[Chunk]]
+
+pub trait Type {
+  from_chunks(Array[@span.Spanned[Chunk]]) -> Self raise TypeError
+  to_chunks(Self) -> Array[@span.Spanned[Chunk]]
+}
+impl Type for Int64
+impl Type for String
+impl Type for Array[PermissiveType[Language]]
+

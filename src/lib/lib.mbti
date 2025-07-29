@@ -1,0 +1,403 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "edragain2nd/biblatex/lib"
+
+import(
+  "edragain2nd/biblatex/span"
+  "edragain2nd/biblatex/types"
+)
+
+// Values
+fn is_id_continue(Char) -> Bool
+
+fn is_id_start(Char) -> Bool
+
+fn is_key(Char) -> Bool
+
+fn is_verbatim_field(String) -> Bool
+
+fn parse_field(String, Field, Array[Pair]) -> Array[@span.Spanned[@types.Chunk]] raise ParseError
+
+// Types and methods
+pub enum AuthorMode {
+  NoneRequired
+  OneRequired
+  BothRequired
+  AuthorRequired
+  AuthorRequiredEditorOptional
+  EditorRequiredAuthorForbidden
+}
+fn AuthorMode::possible(Self) -> Array[String]
+
+type BiblatexParser
+fn BiblatexParser::new(String) -> Self
+fn BiblatexParser::parse(Self) -> RawBibliogrphy raise ParseError
+
+pub struct Bibliography {
+  entries : Array[Entry]
+  mut keys : Map[String, Int]
+}
+fn[T : Show] Bibliography::alias_(Self, String, T) -> Unit
+fn Bibliography::from_raw(RawBibliogrphy) -> Self raise ParseError
+fn Bibliography::get(Self, String) -> Entry?
+fn Bibliography::insert(Self, Entry) -> Entry?
+fn Bibliography::is_empty(Self) -> Bool
+fn Bibliography::iter(Self) -> Iter[Entry]
+fn Bibliography::keys(Self) -> Iter[String]
+fn Bibliography::length(Self) -> Int
+fn Bibliography::new() -> Self
+fn Bibliography::parse(String) -> Result[Self, ParseError]
+fn Bibliography::remove(Self, String) -> Entry?
+fn Bibliography::to_array(Self) -> Array[Entry]
+fn Bibliography::to_biblatex_string(Self) -> String
+fn Bibliography::to_bibtex_string(Self) -> String
+fn Bibliography::write_biblatex(Self, &Logger) -> Unit
+fn Bibliography::write_bibtex(Self, &Logger) -> Unit
+impl Default for Bibliography
+impl Eq for Bibliography
+impl Show for Bibliography
+
+pub(all) struct Entry {
+  key : String
+  entry_type : EntryType
+  fields : Map[String, Array[@span.Spanned[@types.Chunk]]]
+}
+fn Entry::abstract_(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::addendum(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::address(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::afterword(Self) -> Result[Array[@types.Person], RetrievalError]
+fn Entry::annotation(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::annotator(Self) -> Result[Array[@types.Person], RetrievalError]
+fn Entry::author(Self) -> Result[Array[@types.Person], RetrievalError]
+fn Entry::author_type(Self) -> Result[String, RetrievalError]
+fn Entry::book_author(Self) -> Result[Array[@types.Person], RetrievalError]
+fn Entry::book_pagination(Self) -> Result[@types.Pagination, RetrievalError]
+fn Entry::book_subtitle(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::book_title(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::book_title_addon(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::chapter(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::commentator(Self) -> Result[Array[@types.Person], RetrievalError]
+fn Entry::date(Self) -> Result[@types.PermissiveType[@types.Date], RetrievalError]
+fn Entry::doi(Self) -> Result[String, RetrievalError]
+fn Entry::edition(Self) -> Result[@types.PermissiveType[Int64], RetrievalError]
+fn Entry::editors(Self) -> Result[Array[(Array[@types.Person], @types.EditorType)], @types.TypeError]
+fn Entry::eid(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::entry_subtype(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::eprint(Self) -> Result[String, RetrievalError]
+fn Entry::eprint_class(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::eprint_type(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::event_date(Self) -> Result[@types.PermissiveType[@types.Date], RetrievalError]
+fn Entry::eventtitle(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::eventtitle_addon(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::file(Self) -> Result[String, RetrievalError]
+fn Entry::foreword(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::gender(Self) -> Result[@types.Gender, RetrievalError]
+fn Entry::get(Self, String) -> Array[@span.Spanned[@types.Chunk]]?
+fn[T : @types.Type] Entry::get_as(Self, String) -> Result[T, RetrievalError]
+fn Entry::holder(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::how_published(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::index_title(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::institution(Self) -> Result[String, RetrievalError]
+fn Entry::introduction(Self) -> Result[Array[@types.Person], RetrievalError]
+fn Entry::isan(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::isbn(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::ismn(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::isrn(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::issn(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::issue(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::issue_subtitle(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::issue_title(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::issue_title_addon(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::iswc(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::journal(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::journal_subtitle(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::journal_title(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::journal_title_addon(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::keywords(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::label(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::langid(Self) -> Result[@types.PermissiveType[@types.Language], RetrievalError]
+fn Entry::language(Self) -> Result[Array[@types.PermissiveType[@types.Language]], RetrievalError]
+fn Entry::library(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::location(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::main_subtitle(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::main_title(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::main_title_addon(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::name_addon(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::new(String, EntryType) -> Self
+fn Entry::note(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::number(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::options(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::organization(Self) -> Result[Array[Array[@span.Spanned[@types.Chunk]]], RetrievalError]
+fn Entry::orig_date(Self) -> Result[@types.PermissiveType[@types.Date], RetrievalError]
+fn Entry::orig_language(Self) -> Result[Array[String], RetrievalError]
+fn Entry::orig_location(Self) -> Result[Array[Array[@span.Spanned[@types.Chunk]]], RetrievalError]
+fn Entry::page_total(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::pages(Self) -> Result[@types.PermissiveType[Array[@types.Range]], RetrievalError]
+fn Entry::pagination(Self) -> Result[@types.Pagination, RetrievalError]
+fn Entry::parents(Self) -> Result[Array[String], @types.TypeError]
+fn Entry::part(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::publisher(Self) -> Result[Array[Array[@span.Spanned[@types.Chunk]]], RetrievalError]
+fn Entry::pubstate(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::remove(Self, String) -> Array[@span.Spanned[@types.Chunk]]?
+fn Entry::reprint_title(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::school(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::series(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::set(Self, String, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_abstract_(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_addendum(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_address(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_afterword(Self, Array[@types.Person]) -> Unit
+fn Entry::set_annotation(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_annotator(Self, Array[@types.Person]) -> Unit
+fn[T : @types.Type] Entry::set_as(Self, String, T) -> Unit
+fn Entry::set_author(Self, Array[@types.Person]) -> Unit
+fn Entry::set_author_type(Self, String) -> Unit
+fn Entry::set_book_author(Self, Array[@types.Person]) -> Unit
+fn Entry::set_book_pagination(Self, @types.Pagination) -> Unit
+fn Entry::set_book_subtitle(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_book_title(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_book_title_addon(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_chapter(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_commentator(Self, Array[@types.Person]) -> Unit
+fn Entry::set_date(Self, @types.PermissiveType[@types.Date]) -> Unit
+fn Entry::set_doi(Self, String) -> Unit
+fn Entry::set_edition(Self, @types.PermissiveType[Int64]) -> Unit
+fn Entry::set_eid(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_entry_subtype(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_eprint(Self, String) -> Unit
+fn Entry::set_eprint_class(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_eprint_type(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_event_date(Self, @types.PermissiveType[@types.Date]) -> Unit
+fn Entry::set_eventtitle(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_eventtitle_addon(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_file(Self, String) -> Unit
+fn Entry::set_foreword(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_gender(Self, @types.Gender) -> Unit
+fn Entry::set_holder(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_how_published(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_index_title(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_institution(Self, String) -> Unit
+fn Entry::set_introduction(Self, Array[@types.Person]) -> Unit
+fn Entry::set_isan(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_isbn(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_ismn(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_isrn(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_issn(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_issue(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_issue_subtitle(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_issue_title(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_issue_title_addon(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_iswc(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_journal(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_journal_subtitle(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_journal_title(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_journal_title_addon(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_keywords(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_label(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_langid(Self, @types.PermissiveType[@types.Language]) -> Unit
+fn Entry::set_language(Self, Array[@types.PermissiveType[@types.Language]]) -> Unit
+fn Entry::set_library(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_location(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_main_subtitle(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_main_title(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_main_title_addon(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_name_addon(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_note(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_number(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_options(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_organization(Self, Array[Array[@span.Spanned[@types.Chunk]]]) -> Unit
+fn Entry::set_orig_date(Self, @types.PermissiveType[@types.Date]) -> Unit
+fn Entry::set_orig_language(Self, Array[String]) -> Unit
+fn Entry::set_orig_location(Self, Array[Array[@span.Spanned[@types.Chunk]]]) -> Unit
+fn Entry::set_page_total(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_pages(Self, @types.PermissiveType[Array[@types.Range]]) -> Unit
+fn Entry::set_pagination(Self, @types.Pagination) -> Unit
+fn Entry::set_part(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_publisher(Self, Array[Array[@span.Spanned[@types.Chunk]]]) -> Unit
+fn Entry::set_pubstate(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_reprint_title(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_school(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_series(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_short_author(Self, Array[@types.Person]) -> Unit
+fn Entry::set_short_editor(Self, Array[@types.Person]) -> Unit
+fn Entry::set_short_journal(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_short_series(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_short_title(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_shorthand(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_shorthand_intro(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_sort_key(Self, String) -> Unit
+fn Entry::set_subtitle(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_title(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_title_addon(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_translator(Self, Array[@types.Person]) -> Unit
+fn Entry::set_type_(Self, String) -> Unit
+fn Entry::set_url(Self, String) -> Unit
+fn Entry::set_url_date(Self, @types.PermissiveType[@types.Date]) -> Unit
+fn Entry::set_venue(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_version(Self, Array[@span.Spanned[@types.Chunk]]) -> Unit
+fn Entry::set_volume(Self, @types.PermissiveType[Int64]) -> Unit
+fn Entry::set_volumes(Self, Int64) -> Unit
+fn Entry::short_author(Self) -> Result[Array[@types.Person], RetrievalError]
+fn Entry::short_editor(Self) -> Result[Array[@types.Person], RetrievalError]
+fn Entry::short_journal(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::short_series(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::short_title(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::shorthand(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::shorthand_intro(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::sort_key(Self) -> Result[String, RetrievalError]
+fn Entry::subtitle(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::title(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::title_addon(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::to_biblatex_string(Self) -> String
+fn Entry::to_bibtex_string(Self) -> Result[String, @types.TypeError]
+fn Entry::translator(Self) -> Result[Array[@types.Person], RetrievalError]
+fn Entry::type_(Self) -> Result[String, RetrievalError]
+fn Entry::url(Self) -> Result[String, RetrievalError]
+fn Entry::url_date(Self) -> Result[@types.PermissiveType[@types.Date], RetrievalError]
+fn Entry::venue(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::verify(Self) -> Report
+fn Entry::version(Self) -> Result[Array[@span.Spanned[@types.Chunk]], RetrievalError]
+fn Entry::volume(Self) -> Result[@types.PermissiveType[Int64], RetrievalError]
+fn Entry::volumes(Self) -> Result[Int64, RetrievalError]
+impl Eq for Entry
+impl Show for Entry
+
+pub(all) enum EntryType {
+  Article
+  Book
+  Booklet
+  InBook
+  InCollection
+  InProceedings
+  Manual
+  MastersThesis
+  PhdThesis
+  Misc
+  Proceedings
+  TechReport
+  Unpublished
+  MvBook
+  BookInBook
+  SuppBook
+  Periodical
+  SuppPeriodical
+  Collection
+  MvCollection
+  SuppCollection
+  Reference
+  MvReference
+  InReference
+  MvProceedings
+  Report
+  Patent
+  Thesis
+  Online
+  Software
+  Dataset
+  Set
+  XData
+  Unknown(String)
+}
+fn EntryType::is_collection(Self) -> Bool
+fn EntryType::is_multi_volume(Self) -> Bool
+fn EntryType::new(String) -> Self
+fn EntryType::requirements(Self) -> Requirments
+fn EntryType::to_biblatex(Self) -> Self
+fn EntryType::to_bibtex(Self) -> Self
+impl Compare for EntryType
+impl Eq for EntryType
+impl Show for EntryType
+
+type Field
+
+pub(all) enum PagesChapterMode {
+  None
+  OneRequired
+  BothOptional
+  BothForbidden
+  PagesOptional
+  PagesRequired
+}
+fn PagesChapterMode::possible(Self) -> Array[String]
+
+pub struct Pair {
+  key : @span.Spanned[String]
+  value : @span.Spanned[Field]
+}
+fn Pair::new(@span.Spanned[String], @span.Spanned[Field]) -> Self
+
+pub suberror ParseError (@span.Span, ParseErrorKind)
+impl Eq for ParseError
+impl Show for ParseError
+
+pub enum ParseErrorKind {
+  UnexpectedEof
+  Unexpected(Token)
+  Expected(Token)
+  UnknownAbbreviation(String)
+  MalformedCommand
+  DuplicateKey(String)
+  ResolutionError(@types.TypeErrorKind)
+}
+impl Eq for ParseErrorKind
+
+pub struct RawBibliogrphy {
+  mut preamble : String
+  entries : Array[@span.Spanned[RawEntry]]
+  abbreviations : Array[Pair]
+}
+fn RawBibliogrphy::new() -> Self
+fn RawBibliogrphy::parse(String) -> Self raise ParseError
+
+pub enum RawChunk {
+  Normal(String)
+  Abbreviation(String)
+}
+impl Eq for RawChunk
+
+pub struct RawEntry {
+  key : @span.Spanned[String]
+  kind : @span.Spanned[String]
+  fields : Array[Pair]
+}
+
+pub(all) struct Report {
+  missing : Array[String]
+  superfluous : Array[String]
+  malformed : Array[(String, @types.TypeError)]
+}
+fn Report::is_ok(Self) -> Bool
+impl Eq for Report
+impl Show for Report
+
+pub(all) struct Requirments {
+  required : Array[String]
+  optional : Array[String]
+  forbidden : Array[String]
+  mut author_eds_field : AuthorMode
+  mut page_chapter_field : PagesChapterMode
+  mut needs_date : Bool
+}
+impl Default for Requirments
+
+pub(all) enum RetrievalError {
+  Missing(String)
+  TypeError(@types.TypeError)
+}
+impl Eq for RetrievalError
+impl Show for RetrievalError
+
+pub enum Token {
+  Identifier
+  OpeningBrace
+  ClosingBrace
+  Comma
+  QuotationMark
+  Equals
+  DecimalPoint
+}
+impl Eq for Token
+
+// Type aliases
+
+// Traits
+

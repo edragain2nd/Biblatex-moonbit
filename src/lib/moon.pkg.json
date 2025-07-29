@@ -1,7 +1,7 @@
 {"import":[
-    "biblatex/types",
+    "edragain2nd/biblatex/types",
     "edragain2nd/unscanny",
-    "biblatex/span",
+    "edragain2nd/biblatex/span",
     "edragain2nd/compose",
     "moonbitlang/x/fs"
   ]}
