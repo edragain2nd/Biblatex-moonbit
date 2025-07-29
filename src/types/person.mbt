@@ -228,7 +228,7 @@ fn Person::parse_two_commas(s1 : Chunks, s2 : Chunks, s3 : Chunks) -> Person {
 /// This is a ​​proxy type​​ that aliases Array[Person]
 /// ( array of Person objects) to the concrete type ArrayPerson. 
 /// Its primary purpose is to enable trait implementations for the Array generic type when specialized to Person
-pub(all) type ArrayPerson Array[Person]
+pub(all) type ArrayPerson Array[Person] derive(Show,Eq)
 
 ///|
 pub impl Type for ArrayPerson with from_chunks(chunks) {

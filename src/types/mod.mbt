@@ -127,7 +127,7 @@ pub impl Type for String with to_chunks(self) {
 /// This is a ​​proxy type​​ that aliases Array[Chunks]
 /// (array of Chunks objects) to the concrete type ArrayChunks. 
 /// Its primary purpose is to enable trait implementations for the Array generic type when specialized to Chunks
-pub(all) type ArrayChunks Array[Chunks]
+pub(all) type ArrayChunks Array[Chunks] derive(Show,Eq)
 
 ///|
 pub impl Type for ArrayChunks with from_chunks(chunk) {
@@ -150,7 +150,10 @@ pub impl Type for ArrayChunks with to_chunks(self) {
 }
 
 ///|
-pub(all) type ArrayString Array[String]
+/// This is a ​​proxy type​​ that aliases Array[String]
+/// (array of String objects) to the concrete type ArrayString. 
+/// Its primary purpose is to enable trait implementations for the Array generic type when specialized to String
+pub(all) type ArrayString Array[String] derive(Show,Eq)
 
 ///|
 pub impl Type for ArrayString with from_chunks(chunks) {
@@ -184,6 +187,7 @@ pub(all) enum PermissiveType[T] {
 /// ```moonbit
 /// let chunks : Chunks = [{v: Normal("Monroe, Brian Albert"), span: {start: 2147483647, end: 2147483647}}]
 /// let res : PermissiveType[ArrayPerson] = PermissiveType::from_chunks(chunks)
+/// inspect(res,content="Typed(ArrayPerson([Brian Albert Monroe]))")
 /// ```
 pub fn[T : Type] PermissiveType::from_chunks(
   chunks : Chunks,
@@ -204,6 +208,7 @@ pub fn[T : Type] PermissiveType::from_chunks(
 /// let chunks : Chunks = [{v: Normal("Monroe, Brian Albert"), span: {start: 2147483647, end: 2147483647}}]
 /// let res : PermissiveType[ArrayPerson] = PermissiveType::from_chunks(chunks)
 /// let chunks_ = PermissiveType::to_chunks(res)
+/// inspect(chunks_,content="[{v: Normal(\"Monroe, Brian Albert\"), span: {start: 2147483647, end: 2147483647}}]")
 /// ```
 pub fn[T : Type] PermissiveType::to_chunks(self : PermissiveType[T]) -> Chunks {
   match self {
@@ -434,7 +439,7 @@ pub impl Type for Range with to_chunks(self) {
 /// This is a ​​proxy type​​ that aliases Array[Range]
 /// (array of Range objects) to the concrete type ArrayRange. 
 /// Its primary purpose is to enable trait implementations for the Array generic type when specialized to Range
-pub(all) type ArrayRange Array[Range]
+pub(all) type ArrayRange Array[Range] derive(Show,Eq)
 
 ///|
 pub impl Type for ArrayRange with from_chunks(chunks) {

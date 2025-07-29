@@ -68,6 +68,10 @@ fn Chunk::to_biblatex_string(self : Chunk, is_verbatim : Bool) -> String {
 /// let s2 = ChunkExt::format_verbatim(chunks)
 /// let span = ChunkExt::span(chunks)
 /// let s3 = ChunkExt::to_biblatex_string(chunks,false)
+/// inspect(s1,content="Monroe, brian albert")
+/// inspect(s2,content="Monroe, Brian Albert")
+/// inspect(span,content="{start: 2147483647, end: 2147483647}")
+/// inspect(s3,content="{Monroe, Brian Albert}")
 /// ```
 pub trait ChunkExt {
   /// Format the chunks in sentence case.
