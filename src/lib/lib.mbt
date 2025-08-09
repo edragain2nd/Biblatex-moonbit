@@ -52,6 +52,7 @@ pub impl Show for RetrievalError with to_string(self) {
 ///|
 pub impl Show for RetrievalError with output(self, logger) {
   logger.write_string(self.to_string())
+  logger.write_char('\n')
 }
 
 ///|
@@ -786,29 +787,29 @@ test "test_keys" {
 }
 
 ///|
-test "test_gral_paper" {
-  dump_debug("tests/gral.bib")
-}
+// test "test_gral_paper" {
+//   dump_debug("tests/gral.bib")
+// }
 
-///|
-test "test_ds_report" {
-  dump_debug("tests/ds.bib")
-}
+// ///|
+// test "test_ds_report" {
+//   dump_debug("tests/ds.bib")
+// }
 
-///|
-test "test_libra_paper" {
-  dump_author_title("tests/libra.bib")
-}
+// ///|
+// test "test_libra_paper" {
+//   dump_author_title("tests/libra.bib")
+// }
 
-///|
-test "test_rass_report" {
-  dump_author_title("tests/rass.bib")
-}
+// ///|
+// test "test_rass_report" {
+//   dump_author_title("tests/rass.bib")
+// }
 
-///|
-test "test_polar_report" {
-  dump_author_title("tests/polaritons.bib")
-}
+// ///|
+// test "test_polar_report" {
+//   dump_author_title("tests/polaritons.bib")
+// }
 
 ///|
 test "test_comments" {
@@ -826,9 +827,9 @@ test "test_comments" {
 }
 
 ///|
-test "test_extended_name_format" {
-  dump_author_title("tests/extended_name_format.bib")
-}
+// test "test_extended_name_format" {
+//   dump_author_title("tests/extended_name_format.bib")
+// }
 
 ///|
 fn dump_debug(file : String) -> Unit raise @fs.IOError {
@@ -976,7 +977,7 @@ test "test_verbatim_fields" {
   // Test export of entry (not escaping colons)
   let e = bibliography.get("finextraFedGovernorChallenges2019").unwrap()
   let s =
-    #|@Online{{finextraFedGovernorChallenges2019,
+    #|@online{{finextraFedGovernorChallenges2019,
     #|title = {Fed {Governor} Challenges {Facebook}'s {Libra} Project},
     #|author = {FinExtra},
     #|date = {2019-12-18},

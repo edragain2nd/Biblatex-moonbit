@@ -1,4 +1,5 @@
 /// used for parse Roman number in mod.mbt
+
 ///|
 pub enum Numeral {
   I // 1
@@ -8,7 +9,7 @@ pub enum Numeral {
   C // 100
   D // 500
   M // 1000
-}
+} derive(Show, Eq)
 
 ///|
 pub fn Numeral::value(self : Numeral) -> Int16 {
@@ -66,7 +67,7 @@ pub fn Numeral::from_char(input : Char) -> Numeral? {
 ///|
 pub struct Roman {
   numerals : Array[Numeral]
-}
+} derive(Show, Eq)
 
 ///|
 pub fn Roman::parse(input : String) -> Roman? {
@@ -142,4 +143,28 @@ test "test_big_numbers" {
     let i = i.to_int16()
     assert_eq(i, Roman::from(i).value())
   }
+}
+
+///|
+test "test_numeral" {
+  let s = "iMvxLCD"
+  let roman = Roman::parse(s).unwrap()
+  let upper = roman.numerals
+    .map(Numeral::ascii_upper)
+    .map(c => c.to_string())
+    .join("")
+  assert_eq(upper, "IMVXLCD")
+  let lower = roman.numerals
+    .map(Numeral::ascii_lower)
+    .map(c => c.to_string())
+    .join("")
+  assert_eq(lower, "imvxlcd")
+}
+
+///|
+test "test_none" {
+  let res = Numeral::from_char('k')
+  assert_eq(res, None)
+  let res = Roman::parse("pp")
+  assert_eq(res, None)
 }

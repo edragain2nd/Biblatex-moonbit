@@ -41,3 +41,10 @@ pub(all) struct Span {
 pub fn Span::is_empty(self : Span) -> Bool {
   not(self.start < self.end)
 }
+
+///|
+test "test_map" {
+  let spanned : Spanned[Char] = { v: 't', span: { start: 1, end: 1 } }
+  let res = spanned.map(Char::to_string)
+  assert_eq(res, { v: "t", span: { start: 1, end: 1 } })
+}

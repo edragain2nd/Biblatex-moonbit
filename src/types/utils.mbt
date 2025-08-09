@@ -17,6 +17,14 @@ pub fn is_escapable(c : Char, verb : Bool, read_char : Bool) -> Bool {
 }
 
 ///|
+/// Removes leading whitespace from a string.
+///
+/// # Arguments
+/// * `self` - The input string to trim.
+///
+/// # Returns
+/// A new `String` with leading whitespace removed.
+///
 fn String::trim_space_start(self : String) -> String {
   let s = StringBuilder::new()
   s.write_iter(self.iter().drop_while(c => c.is_whitespace()))
@@ -24,16 +32,43 @@ fn String::trim_space_start(self : String) -> String {
 }
 
 ///|
+/// Removes trailing whitespace from a string.
+///
+/// # Arguments
+/// * `self` - The input string to trim.
+///
+/// # Returns
+/// A new `String` with trailing whitespace removed.
+///
 fn String::trim_space_end(self : String) -> String {
   self.rev().trim_space_start().rev()
 }
 
 ///|
+/// Splits a string into two parts at the given index.
+///
+/// # Arguments
+/// * `self` - The input string to split.
+/// * `index` - The position at which to split (0-based).
+///
+/// # Returns
+/// A tuple `(left, right)` where `left` is the substring before `index`,
+/// and `right` is the substring from `index` onward.
+///
 fn String::split_at(self : String, index : Int) -> (String, String) {
   (self.substring(end=index), self.substring(start=index))
 }
 
 ///|
+/// Performs saturating integer addition (clamps at `Int::MAX`).
+///
+/// # Arguments
+/// * `self` - The base integer.
+/// * `len` - The value to add.
+///
+/// # Returns
+/// `self + len`, or `Int::MAX` if the result would overflow.
+///
 fn Int::saturating_add(self : Int, len : Int) -> Int {
   if @int.max_value - self < len {
     @int.max_value
@@ -43,6 +78,14 @@ fn Int::saturating_add(self : Int, len : Int) -> Int {
 }
 
 ///|
+/// Checks if a string starts with any whitespace character.
+///
+/// # Arguments
+/// * `self` - The input string to check.
+///
+/// # Returns
+/// `true` if the first character is whitespace, `false` otherwise.
+///
 fn String::starts_with_whitespace(self : String) -> Bool {
   if self.get_char(0) is Some(c) {
     c.is_whitespace()
@@ -52,11 +95,27 @@ fn String::starts_with_whitespace(self : String) -> Bool {
 }
 
 ///|
+/// Checks if a string ends with any whitespace character.
+///
+/// # Arguments
+/// * `self` - The input string to check.
+///
+/// # Returns
+/// `true` if the last character is whitespace, `false` otherwise.
+///
 fn String::ends_with_whitespace(self : String) -> Bool {
   self.rev().starts_with_whitespace()
 }
 
 ///|
+/// Formats a year as a zero-padded string with optional negative sign.
+///
+/// # Arguments
+/// * `year` - The year to format (can be negative for BCE dates).
+///
+/// # Returns
+/// A formatted string with leading zeros and optional `-` prefix.
+///
 fn format_year(year : Int) -> String {
   let mut result = ""
   let abs_year = year.abs()
@@ -93,6 +152,14 @@ fn format_year(year : Int) -> String {
 }
 
 ///|
+/// Formats a month or day as a 2-digit zero-padded string.
+///
+/// # Arguments
+/// * `month` - The month or day (1-12 for months, 1-31 for days).
+///
+/// # Returns
+/// A string like `"01"` for values < 10, or `"12"` otherwise.
+///
 fn format_month_or_day(month : UInt) -> String {
   if month < 9 {
     "0\{month}"

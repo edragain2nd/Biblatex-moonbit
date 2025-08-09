@@ -2,7 +2,7 @@
 typealias @unscanny.(CharPredicate, Scanner)
 
 ///|
-type Field Array[Spanned[RawChunk]]
+struct Field(Array[Spanned[RawChunk]])
 
 ///|
 /// A literal representation of a bibliography file, with abbreviations not yet
@@ -60,6 +60,7 @@ pub impl Show for ParseError with to_string(self) {
 ///|
 pub impl Show for ParseError with output(self, logger) {
   logger.write_string(self.to_string())
+  logger.write_char('\n')
 }
 
 ///|
@@ -128,6 +129,7 @@ impl Show for ParseErrorKind with to_string(self) {
 ///|
 impl Show for ParseErrorKind with output(self, logger) {
   logger.write_string(self.to_string())
+  logger.write_char('\n')
 }
 
 ///|
@@ -362,6 +364,7 @@ fn BiblatexParser::field(
 }
 
 ///|
+/// Eat single field
 fn BiblatexParser::single_field(
   self : BiblatexParser,
 ) -> Spanned[RawChunk] raise ParseError {
@@ -399,9 +402,8 @@ fn BiblatexParser::fields(
       _ =>
         raise ParseError((self.here(), ParseErrorKind::Expected(Token::Comma)))
     }
-  } else {
-    fields
   }
+  fields
 }
 
 ///|
@@ -565,18 +567,15 @@ impl Show for Field with to_string(self) {
 ///|
 impl Show for Field with output(self, logger) {
   logger.write_string(self.to_string())
+  logger.write_char('\n')
 }
 
 ///|
 fn test_prop(key : String, value : String) -> String {
-  try {
-    let t = "@article{test, \{key}=\{value}}"
-    let bt = RawBibliogrphy::parse(t)
-    let article = bt.entries.get(0).unwrap()
-    article.v.fields.get(0).unwrap().value.v.to_string()
-  } catch {
-    ParseError((here, kind)) => "Error! position: \{here} kind \{kind}"
-  }
+  let t = "@article{test, \{key}=\{value}}"
+  let bt = try? RawBibliogrphy::parse(t)
+  let article = bt.unwrap().entries.get(0).unwrap()
+  article.v.fields.get(0).unwrap().value.v.to_string()
 }
 
 ///|
@@ -632,4 +631,116 @@ test "test_escape" {
 ///|
 test "test_abbr" {
   assert_eq(test_prop("author", "dec # {~12}"), "dec # \"~12\"")
+}
+
+///|
+test "test_parse_error" {
+  let mut res = ""
+  let parser : BiblatexParser = BiblatexParser::new("dont have comma")
+  let _ = parser.comma() catch {
+    ParseError((_, kind)) => res = kind.to_string()
+  }
+  assert_eq(res, "expected comma")
+  let parser : BiblatexParser = BiblatexParser::new("dont have brace")
+  let _ = parser.brace(true) catch {
+    ParseError((_, kind)) => res = kind.to_string()
+  }
+  assert_eq(res, "expected opening brace")
+  let parser : BiblatexParser = BiblatexParser::new("dont have qupte")
+  let _ = parser.quote() catch {
+    ParseError((_, kind)) => res = kind.to_string()
+  }
+  assert_eq(res, "expected double quote")
+  let parser : BiblatexParser = BiblatexParser::new("\"unclosed")
+  let _ = parser.string() catch {
+    ParseError((_, kind)) => {
+      res = kind.to_string()
+      Spanned::detached("")
+    }
+  }
+  assert_eq(res, "unexpected end of file")
+  let parser : BiblatexParser = BiblatexParser::new("3.14.15")
+  let _ = parser.number() catch {
+    ParseError((_, kind)) => {
+      res = kind.to_string()
+      ""
+    }
+  }
+  assert_eq(res, "unexpected decimal point")
+  let parser : BiblatexParser = BiblatexParser::new("")
+  let _ = parser.number() catch {
+    ParseError((_, kind)) => {
+      res = kind.to_string()
+      ""
+    }
+  }
+  assert_eq(res, "unexpected end of file")
+  let parser : BiblatexParser = BiblatexParser::new("{unclosed")
+  let _ = parser.braced() catch {
+    ParseError((_, kind)) => {
+      res = kind.to_string()
+      Spanned::detached(RawChunk::Normal(""))
+    }
+  }
+  assert_eq(res, "unexpected end of file")
+  let parser : BiblatexParser = BiblatexParser::new("")
+  let _ = parser.single_field() catch {
+    ParseError((_, kind)) => {
+      res = kind.to_string()
+      Spanned::detached(RawChunk::Normal(""))
+    }
+  }
+  assert_eq(res, "unexpected end of file")
+  let parser : BiblatexParser = BiblatexParser::new("author=Alice title=Book")
+  let _ = parser.fields() catch {
+    ParseError((_, kind)) => {
+      res = kind.to_string()
+      [Pair::new(Spanned::detached(""), Spanned::detached([]))]
+    }
+  }
+  assert_eq(res, "expected comma")
+  let parser : BiblatexParser = BiblatexParser::new(":123invalid")
+  let _ = parser.ident() catch {
+    ParseError((_, kind)) => {
+      res = kind.to_string()
+      Spanned::detached("")
+    }
+  }
+  assert_eq(res, "expected identifier")
+}
+
+///|
+test "test_preamble" {
+  let s = "@preamble{\"Some text\"}\n@preamble{\"First\"}\n@preamble{\"Second\"}"
+  let bt = RawBibliogrphy::parse(s)
+  assert_eq(bt.preamble, "\"Some text\" # \"First\" # \"Second\"")
+}
+
+///|
+test "test_show" {
+  let error = ParseError(({ start: 1, end: 2 }, UnexpectedEof))
+  let logger : StringBuilder = StringBuilder::new()
+  error.output(logger)
+  let field : Field = []
+  field.output(logger)
+  let t1 = Token::Equals
+  let t2 = Token::ClosingBrace
+  t1.output(logger)
+  t2.output(logger)
+  let kind1 = ParseErrorKind::DuplicateKey("key")
+  let kind2 = ParseErrorKind::MalformedCommand
+  let kind3 = ParseErrorKind::UnknownAbbreviation("abbr")
+  let kind4 = ParseErrorKind::ResolutionError(UndefinedRange)
+  kind1.output(logger)
+  kind2.output(logger)
+  kind3.output(logger)
+  kind4.output(logger)
+  println(logger)
+}
+
+///|
+test "panic_entry" {
+  let parser : BiblatexParser = BiblatexParser::new("preamble{\"Some text\"}")
+  let _ = parser.entry()
+
 }

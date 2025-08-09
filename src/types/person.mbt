@@ -210,8 +210,6 @@ fn Person::parse_single_comma(s1 : Chunks, s2 : Chunks) -> Person {
   }
 }
 
-///|
-
 ///| Constructs new person from chunk slices if in the
 /// form `<Prefix> <Last>, <Suffix>, <First>`.
 ///
@@ -226,9 +224,9 @@ fn Person::parse_two_commas(s1 : Chunks, s2 : Chunks, s3 : Chunks) -> Person {
 
 ///|
 /// This is a ​​proxy type​​ that aliases Array[Person]
-/// ( array of Person objects) to the concrete type ArrayPerson. 
+/// (array of Person objects) to the concrete type ArrayPerson. 
 /// Its primary purpose is to enable trait implementations for the Array generic type when specialized to Person
-pub(all) type ArrayPerson Array[Person] derive(Show,Eq)
+pub(all) struct ArrayPerson(Array[Person]) derive(Show, Eq)
 
 ///|
 pub impl Type for ArrayPerson with from_chunks(chunks) {
@@ -639,4 +637,20 @@ test "test_person_extended_name_format" {
   assert_eq(people[0].prefix, "")
   assert_eq(people[0].suffix, "")
   assert_eq(people[0].given_name, "")
+}
+
+///|
+test "test_coverage" {
+  let person : Person = {
+    name: "Lord",
+    given_name: "Blackwood",
+    prefix: "Alistair",
+    suffix: "III",
+  }
+  assert_eq(person.to_string(), "Blackwood Alistair Lord III")
+  let array : ArrayPerson = ArrayPerson([person])
+  assert_eq(
+    array.to_chunks().to_string(),
+    "[{v: Verbatim(\"Alistair\"), span: {start: 2147483647, end: 2147483647}}, {v: Normal(\" Lord, III, Blackwood\"), span: {start: 2147483647, end: 2147483647}}]",
+  )
 }

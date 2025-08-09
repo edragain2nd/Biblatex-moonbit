@@ -41,7 +41,53 @@ pub(all) enum EntryType {
   Set
   XData
   Unknown(String)
-} derive(Show, Eq, Compare)
+} derive(Eq, Compare)
+
+///|
+pub impl Show for EntryType with to_string(self) {
+  match self {
+    Unknown(s) => "Unknown(\{s})"
+    EntryType::Article => "article"
+    EntryType::Book => "book"
+    EntryType::Booklet => "booklet"
+    EntryType::InBook => "inbook"
+    EntryType::InCollection => "incollection"
+    EntryType::InProceedings => "inproceedings"
+    EntryType::Manual => "manual"
+    EntryType::MastersThesis => "mastersthesis"
+    EntryType::PhdThesis => "phdthesis"
+    EntryType::Misc => "misc"
+    EntryType::Proceedings => "proceedings"
+    EntryType::TechReport => "techreport"
+    EntryType::Unpublished => "unpublished"
+    EntryType::MvBook => "mvbook"
+    EntryType::BookInBook => "bookinbook"
+    EntryType::SuppBook => "suppbook"
+    EntryType::Periodical => "periodical"
+    EntryType::SuppPeriodical => "suppperiodical"
+    EntryType::Collection => "collection"
+    EntryType::MvCollection => "mvcollection"
+    EntryType::SuppCollection => "suppcollection"
+    EntryType::Reference => "reference"
+    EntryType::MvReference => "mvreference"
+    EntryType::InReference => "inreference"
+    EntryType::MvProceedings => "mvproceedings"
+    EntryType::Report => "report"
+    EntryType::Patent => "patent"
+    EntryType::Thesis => "thesis"
+    EntryType::Online => "online"
+    EntryType::Software => "software"
+    EntryType::Dataset => "dataset"
+    EntryType::Set => "set"
+    EntryType::XData => "xdata"
+  }
+}
+
+///|
+pub impl Show for EntryType with output(self, logger) {
+  logger.write_string(self.to_string())
+  logger.write_char('\n')
+}
 
 ///|
 /// Describes the optionality mode of the `author` and `editor` fields.

@@ -385,7 +385,6 @@ pub fn split_token_lists_with_kw(
   out.push(latest)
   out
 }
-
 ///| Splits a chunk array into two at the first occurrence of the character `c`.
 /// `omit` controls whether the output will contain `c`.
 pub fn split_at_normal_char(
@@ -548,6 +547,9 @@ test "test_split" {
   let split = split_values(vls, 1, 5)
   assert_eq(split.0, ref1)
   assert_eq(split.1, ref2)
+  let split = split_values(vls, 4, 5)
+  assert_eq(split.0, vls)
+  assert_eq(split.1, [])
 }
 
 ///|
@@ -566,4 +568,78 @@ test "test_split_at_normal_char" {
   let split = split_at_normal_char(vls, ',', true)
   assert_eq(split.0, ref1)
   assert_eq(split.1, ref2)
+}
+
+///|
+test "test_math" {
+  let chunk : Chunk = Math("a+b")
+  let s = chunk.get()
+  assert_eq(s, "a+b")
+  let string_bool = chunk.get_and_verb()
+  assert_eq(string_bool, ("a+b", false))
+  let array = [Spanned::detached(chunk)]
+  let s = ChunkExt::to_biblatex_string(array, false)
+  assert_eq(s, "{$a+b$}")
+  let chunk1 = Math("c+d")
+  let array = [Spanned::detached(chunk), Spanned::detached(chunk1)]
+  let spilt = split_values(array, 1, 2)
+  assert_eq(spilt.0, [
+    Spanned::detached(Math("a+b")),
+    Spanned::detached(Math("c+")),
+  ])
+  assert_eq(spilt.1, [Spanned::detached(Math("d"))])
+}
+
+///|
+test "test_format" {
+  let normal = Spanned::detached(Normal("\n\rnormal string"))
+  let verbatim = Spanned::detached(Verbatim("verbatim string"))
+  let math = Spanned::detached(Math("math string"))
+  let array = []
+  array.push(normal)
+  array.push(verbatim)
+  array.push(math)
+  assert_eq(
+    ChunkExt::format_sentence(array),
+    " normal stringverbatim string$math string$",
+  )
+  assert_eq(
+    ChunkExt::format_verbatim(array),
+    " normal stringverbatim string$math string$",
+  )
+  array.clear()
+  let verbatim : Spanned[Chunk] = Spanned::detached(Verbatim("verbatim string"))
+  array.push(verbatim)
+  assert_eq(ChunkExt::to_biblatex_string(array, true), "{{verbatim string}}")
+  let normal = Spanned::detached(Normal("normal string"))
+  array.push(normal)
+  assert_eq(
+    ChunkExt::to_biblatex_string(array, false),
+    "{{verbatim string}normal string}",
+  )
+}
+
+///|
+test "test_boundary" {
+  let split_kw = split_token_lists_with_kw([], "keyword")
+  assert_eq(split_kw, [[]])
+  let split_normal_char = split_at_normal_char([], 'c', true)
+  assert_eq(split_normal_char, ([], []))
+}
+
+///|
+test "test_join_chunk_list" {
+  let vls = [
+    s(n("split "), { start: 1, end: 7 }),
+    s(v("not, "), { start: 9, end: 14 }),
+    s(n("but rather, here"), { start: 16, end: 32 }),
+  ]
+  let list = join_chunk_list(vls, ",")
+  assert_eq(list, [
+    { v: Normal("split "), span: { start: 1, end: 7 } },
+    { v: Normal(","), span: { start: 9, end: 9 } },
+    { v: Verbatim("not, "), span: { start: 9, end: 14 } },
+    { v: Normal(","), span: { start: 16, end: 16 } },
+    { v: Normal("but rather, here"), span: { start: 16, end: 32 } },
+  ])
 }

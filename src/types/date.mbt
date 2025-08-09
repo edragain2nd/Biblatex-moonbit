@@ -633,6 +633,7 @@ pub impl Show for Datetime with to_string(self) {
 ///|
 pub impl Show for Datetime with output(self, logger) {
   logger.write_string(self.to_string())
+  logger.write_char('\n')
 }
 
 ///|
