@@ -60,7 +60,6 @@ pub impl Show for ParseError with to_string(self) {
 ///|
 pub impl Show for ParseError with output(self, logger) {
   logger.write_string(self.to_string())
-  logger.write_char('\n')
 }
 
 ///|
@@ -567,7 +566,6 @@ impl Show for Field with to_string(self) {
 ///|
 impl Show for Field with output(self, logger) {
   logger.write_string(self.to_string())
-  logger.write_char('\n')
 }
 
 ///|

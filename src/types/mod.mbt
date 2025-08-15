@@ -12,7 +12,6 @@ pub impl Show for TypeError with to_string(self) {
 ///|
 pub impl Show for TypeError with output(self, logger) {
   logger.write_string(self.to_string())
-  logger.write_char('\n')
 }
 
 ///|
@@ -52,7 +51,6 @@ pub(all) enum TypeErrorKind {
 ///|
 pub impl Show for TypeErrorKind with output(self, logger) {
   logger.write_string(self.to_string())
-  logger.write_char('\n')
 }
 
 ///|

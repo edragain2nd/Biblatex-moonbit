@@ -52,10 +52,10 @@ pub impl Show for RetrievalError with to_string(self) {
 ///|
 pub impl Show for RetrievalError with output(self, logger) {
   logger.write_string(self.to_string())
-  logger.write_char('\n')
 }
 
 ///|
+/// Converts a `Result[T, RetrievalError]` into a `Result[T? , TypeError]` with error handling.
 fn[T] convert_result(err : Result[T, RetrievalError]) -> Result[T?, TypeError] {
   match err {
     Ok(val) => Ok(Some(val))
@@ -205,6 +205,7 @@ pub fn Bibliography::to_array(self : Bibliography) -> Array[Entry] {
 // FIXME: not related to file IO, only debugger log​
 
 ///|
+/// Serialize this bibliography into a logger with BibLaTeX string.
 pub fn Bibliography::write_biblatex(
   self : Bibliography,
   logger : &Logger,
@@ -225,7 +226,8 @@ pub fn Bibliography::to_biblatex_string(self : Bibliography) -> String {
 
 // FIXME: not related to file IO, only debugger log​
 
-///|.
+///|
+/// Serialize this bibliography into a logger with BibTeX string.
 pub fn Bibliography::write_bibtex(
   self : Bibliography,
   logger : &Logger,
@@ -259,6 +261,7 @@ pub fn Entry::get(self : Entry, key : String) -> Chunks? {
 }
 
 ///|
+/// Retrieves and parses a field from an entry with type conversion.
 pub fn[T : Type] Entry::get_as(
   self : Entry,
   key : String,
@@ -271,6 +274,21 @@ pub fn[T : Type] Entry::get_as(
   let res : T = parse_chunks(res) catch {
     err => return Err(RetrievalError::TypeError(err))
   }
+  Ok(res)
+}
+
+///|
+/// Retrieves and parses a field from an entry with permisstype type conversion.
+pub fn[T : Type] Entry::get_as_permisstype(
+  self : Entry,
+  key : String,
+) -> Result[PermissiveType[T], RetrievalError] {
+  let res = self.get(key)
+  if res is None {
+    return Err(RetrievalError::Missing(key))
+  }
+  let res = res.unwrap()
+  let res : PermissiveType[T] = PermissiveType::from_chunks(res)
   Ok(res)
 }
 
@@ -288,6 +306,18 @@ pub fn Entry::set(self : Entry, key : String, chunks : Chunks) -> Unit {
 /// The field key is lowercase before insertion.
 pub fn[T : Type] Entry::set_as(self : Entry, key : String, value : T) -> Unit {
   self.set(key, value.to_chunks())
+}
+
+///|
+/// Set the permisstype value of a field as a specific type.
+///
+/// The field key is lowercase before insertion.
+pub fn[T : Type] Entry::set_as_permisstype(
+  self : Entry,
+  key : String,
+  value : PermissiveType[T],
+) -> Unit {
+  self.set(key, PermissiveType::to_chunks(value))
 }
 
 ///|
@@ -513,7 +543,7 @@ pub fn Entry::verify(self : Entry) -> Report {
 pub fn Entry::to_biblatex_string(self : Entry) -> String {
   let mut biblatex = ""
   let ty = self.entry_type.to_biblatex()
-  biblatex += "@\{ty}{{\{self.key},\n"
+  biblatex += "@\{ty}{\{self.key},\n"
   for pair in self.fields {
     let key = pair.0
     let value = pair.1
@@ -532,34 +562,26 @@ pub fn Entry::to_biblatex_string(self : Entry) -> String {
 ///|
 /// Serialize this entry into a BibTeX string.
 ///
-/// This function can return an error if there is a malformed date field.
-pub fn Entry::to_bibtex_string(self : Entry) -> Result[String, TypeError] {
+pub fn Entry::to_bibtex_string(self : Entry) -> String {
   let mut bibtex = ""
   let ty = self.entry_type.to_bibtex()
   let thesis = ty is (PhdThesis | MastersThesis)
-  bibtex += "@\{ty}{{\{self.key}\n"
+  bibtex += "@\{ty}{\{self.key}\n"
   for pair in self.fields {
     let key = pair.0
     let value = pair.1
     if key is "date" {
-      let res = convert_result(self.date())
-      if res.is_err() {
-        return Err(res.unwrap_err())
-      }
-      if res.unwrap() is Some(date) {
-        if date is Typed(date) {
-          for kv in date.to_fieldset() {
-            let key = kv.0
-            let value = kv.1
-            let v = ChunkExt::to_biblatex_string(
-              [Spanned::zero(Chunk::Normal(value))],
-              false,
-            )
-            bibtex += "\{key} = \{v},\n"
-          }
-          continue
+      let res = convert_result(self.date()).unwrap().unwrap()
+      if res is Typed(date) {
+        for kv in date.to_fieldset() {
+          let key = kv.0
+          let value = kv.1
+          let v = ChunkExt::to_biblatex_string(
+            [Spanned::zero(Chunk::Normal(value))],
+            false,
+          )
+          bibtex += "\{key} = \{v},\n"
         }
-      } else {
         continue
       }
     }
@@ -572,7 +594,7 @@ pub fn Entry::to_bibtex_string(self : Entry) -> Result[String, TypeError] {
     bibtex += "\{key} = \{ChunkExt::to_biblatex_string(value,is_verbatim_field(key))},\n"
   }
   bibtex += "}"
-  Ok(bibtex)
+  bibtex
 }
 
 ///|
@@ -666,7 +688,7 @@ fn Entry::resolve_single_crossref(
       "maintitle" | "mainsubtitle" | "maintitleaddon" if crossref.entry_type.is_multi_volume() => {
         let key = if f.contains("s") {
           "subtitle"
-        } else if f.contains("a") {
+        } else if f is "maintitleaddon" {
           "titleaddon"
         } else {
           "title"
@@ -878,7 +900,7 @@ test "test_bibtex_conversion" {
   assert_true(
     biblatex.contains("institution = {Technische Universität Berlin},"),
   )
-  let bibtex = bibliography.get("haug2019").unwrap().to_bibtex_string().unwrap()
+  let bibtex = bibliography.get("haug2019").unwrap().to_bibtex_string()
   assert_true(bibtex.contains("school = {Technische Universität Berlin},"))
   assert_true(bibtex.contains("year = {2019},"))
   assert_true(bibtex.contains("month = {10},"))
@@ -904,6 +926,42 @@ test "test_verify" {
   assert_true(report.superfluous.contains("author"))
   assert_true(report.superfluous.contains("chapter"))
   assert_eq(report.malformed[0].0, "gender")
+  let contents = @fs.read_file_to_string("tests/libra.bib")
+  let bibliography = Bibliography::parse(contents).unwrap()
+  let tien = bibliography.get("tienBigDataUnleashing2013").unwrap()
+  let report = tien.verify()
+  assert_true(report.missing.contains("journaltitle"))
+  let entry = Entry::new("test1", Article)
+  let _ = entry.verify()
+  let entry = Entry::new("test2", InCollection)
+  let _ = entry.verify()
+  let entry = Entry::new("test3", XData)
+  let _ = entry.verify()
+  let entry = Entry::new("test4", Dataset)
+  let _ = entry.verify()
+  let entry = Entry::new("test5", InBook)
+  let _ = entry.verify()
+  let entry = Entry::new("test6", MvProceedings)
+  entry.set_pages(Typed([{ start: 1, end: 2 }]))
+  let _ = entry.verify()
+  let entry = Entry::new("test7", Article)
+  entry.set_edition(Typed(2999))
+  entry.set_organization([[Spanned::detached(Normal("organization"))]])
+  entry.set_publisher([[Spanned::detached(Normal("publisher"))]])
+  entry.set_book_pagination(Page)
+  entry.set_pagination(Page)
+  entry.fields.set("editortype", [Spanned::detached(Normal("editor"))])
+  entry.fields.set("editoratype", [Spanned::detached(Normal("editor"))])
+  entry.fields.set("editorbtype", [Spanned::detached(Normal("editor"))])
+  entry.fields.set("editorctype", [Spanned::detached(Normal("editor"))])
+  entry.fields.set("xref", [Spanned::detached(Normal("xref"))])
+  entry.fields.set("xdata", [Spanned::detached(Normal("xdata"))])
+  entry.fields.set("ids", [Spanned::detached(Normal("ids"))])
+  entry.fields.set("eventyear", [Spanned::detached(Normal("1944"))])
+  entry.fields.set("eventmonth", [Spanned::detached(Normal("March"))])
+  entry.fields.set("eventday", [Spanned::detached(Normal("64"))])
+  let _ = entry.verify()
+
 }
 
 ///|
@@ -977,7 +1035,7 @@ test "test_verbatim_fields" {
   // Test export of entry (not escaping colons)
   let e = bibliography.get("finextraFedGovernorChallenges2019").unwrap()
   let s =
-    #|@online{{finextraFedGovernorChallenges2019,
+    #|@online{finextraFedGovernorChallenges2019,
     #|title = {Fed {Governor} Challenges {Facebook}'s {Libra} Project},
     #|author = {FinExtra},
     #|date = {2019-12-18},
@@ -1135,4 +1193,210 @@ test "test_editor_types" {
       ),
     ]),
   )
+}
+
+///|
+test "test_show" {
+  assert_eq(Missing("author").to_string(), "field author is missing")
+  let raw =
+    #|@article{aksin,
+    #|title        = {Effect of immobilization on catalytic characteristics of
+    #|saturated {Pd-N}-heterocyclic carbenes in {Mizoroki-Heck}
+    #|reactions},
+    #|}
+  let bibliography = Bibliography::parse(raw).unwrap()
+  let logger = StringBuilder::new()
+  bibliography.write_biblatex(logger)
+  assert_eq(
+    logger.to_string(),
+    "\n@article{aksin,\ntitle = {Effect of immobilization on catalytic characteristics of saturated {Pd-N}-heterocyclic carbenes in {Mizoroki-Heck} reactions},\n}\n",
+  )
+  let logger = StringBuilder::new()
+  bibliography.write_bibtex(logger)
+  assert_eq(
+    logger.to_string(),
+    "\n@article{aksin\ntitle = {Effect of immobilization on catalytic characteristics of saturated {Pd-N}-heterocyclic carbenes in {Mizoroki-Heck} reactions},\n}\n",
+  )
+  let logger = StringBuilder::new()
+  let error = TypeError(TypeError(({ start: 1, end: 2 }, InvalidFormat)))
+  error.output(logger)
+  assert_eq(logger.to_string(), "invalid format: 1-2")
+}
+
+///|
+test "test_error" {
+  let err : TypeError = TypeError(
+    ({ start: 1, end: 2 }, TypeErrorKind::InvalidFormat),
+  )
+  let convert_err : Result[Unit?, TypeError] = convert_result(
+    Err(TypeError(err)),
+  )
+  assert_eq(convert_err, Err(err))
+  let contents = @fs.read_file_to_string("tests/gral_rep_key.bib")
+  let bibliography = Bibliography::parse(contents)
+  assert_eq(
+    bibliography,
+    Err(
+      ParseError(
+        (
+          { start: 28452, end: 28744 },
+          ParseErrorKind::DuplicateKey("ishihara2012"),
+        ),
+      ),
+    ),
+  )
+  let raw_bib = RawBibliogrphy::new()
+  let rc1 : Field = [Spanned::detached(Normal("1944"))]
+  let rc2 : Field = [Spanned::detached(Normal("10"))]
+  let rc3 : Field = [Spanned::detached(Normal("64"))]
+  let rc4 : Field = [Spanned::detached(Normal("test"))]
+  let pair = [
+    { key: Spanned::detached("year"), value: Spanned::detached(rc1) },
+    { key: Spanned::detached("month"), value: Spanned::detached(rc2) },
+    { key: Spanned::detached("day"), value: Spanned::detached(rc3) },
+  ]
+  let raw_entry : RawEntry = {
+    key: Spanned::detached("test"),
+    kind: Spanned::detached("article"),
+    fields: pair,
+  }
+  let cross_pair = [
+    { key: Spanned::detached("crossref"), value: Spanned::detached(rc4) },
+  ]
+  let raw_entry_cross : RawEntry = {
+    key: Spanned::detached("test2"),
+    kind: Spanned::detached("article"),
+    fields: cross_pair,
+  }
+  raw_bib.entries.push(Spanned::detached(raw_entry))
+  raw_bib.entries.push(Spanned::detached(raw_entry_cross))
+  let _ = Bibliography::from_raw(raw_bib) catch {
+    ParseError((_, kind)) => {
+      assert_eq(kind, ResolutionError(DayOutOfRange))
+      Bibliography::new()
+    }
+  }
+
+}
+
+///|
+test "test_Bibliography_Entry" {
+  let contents = @fs.read_file_to_string("tests/rass.bib")
+  let bibliography = Bibliography::parse(contents).unwrap()
+  assert_eq(bibliography.length(), 22)
+  let raw =
+    #|@article{aksin,
+    #|title        = {Effect of immobilization on catalytic characteristics of
+    #|saturated {Pd-N}-heterocyclic carbenes in {Mizoroki-Heck}
+    #|reactions},
+    #|}
+  let bibliography = Bibliography::parse(raw).unwrap()
+  let c1 = Spanned::new(
+    Chunk::Normal(
+      "Effect of immobilization on catalytic characteristics of saturated ",
+    ),
+    { start: 32, end: 99 },
+  )
+  let c2 = Spanned::new(Chunk::Verbatim("Pd-N"), { start: 100, end: 104 })
+  let c3 = Spanned::new(Chunk::Normal("-heterocyclic carbenes in "), {
+    start: 105,
+    end: 131,
+  })
+  let c4 = Spanned::new(Chunk::Verbatim("Mizoroki-Heck"), {
+    start: 132,
+    end: 145,
+  })
+  let c5 = Spanned::new(Chunk::Normal(" reactions"), { start: 146, end: 156 })
+  let entry = Entry::new("aksin", Article)
+  let array = [c1, c2, c3, c4, c5]
+  entry.set_title(array)
+  assert_eq(bibliography.to_array(), [entry])
+  assert_false(bibliography.is_empty())
+  assert_eq(bibliography.insert(entry), Some(entry))
+  assert_eq(bibliography.remove("test"), None)
+}
+
+///|
+test "test_Entry" {
+  let entry = Entry::new("aksin", Article)
+  entry.fields.set("gender", [Spanned::detached(Normal("1944XGD"))])
+  let type_error : TypeError = TypeError(
+    ({ start: 2147483647, end: 2147483647 }, UnknownGender),
+  )
+  let res : Result[Gender, RetrievalError] = entry.get_as("gender")
+  assert_eq(res, Err(TypeError(type_error)))
+  let number : Int64 = 2999
+  entry.set_as("volumes", number)
+  assert_eq(entry.volumes(), Ok(2999))
+  let array_string : ArrayString = ArrayString([
+    "a short review", "a long review",
+  ])
+  entry.set_as("xref", array_string)
+  assert_eq(entry.parents(), Ok(["a short review", "a long review"]))
+  let entry = Entry::new("aksin", Article)
+  entry.set_date(Chunks([Spanned::detached(Normal("date"))]))
+  entry.set_journal_title([Spanned::detached(Normal("journaltitle"))])
+  entry.set_location([Spanned::detached(Normal("location"))])
+  assert_eq(
+    entry.to_bibtex_string(),
+    "@article{aksin\ndate = {date},\njournal = {journaltitle},\naddress = {location},\n}",
+  )
+  entry.set_abstract_([])
+  assert_eq(entry.get_non_empty("abstract"), None)
+  let entry = Entry::new("aksin", XData)
+  let cross_entry = Entry::new("bksin", Book)
+  cross_entry.fields.set("booktitle", [])
+  cross_entry.fields.set("title", [])
+  entry.resolve_single_crossref(cross_entry)
+  let cross_entry = Entry::new("bksin", Book)
+  cross_entry.fields.set("booksubtitle", [])
+  entry.resolve_single_crossref(cross_entry)
+  let cross_entry = Entry::new("bksin", Book)
+  cross_entry.fields.set("booktitleaddon", [])
+  entry.resolve_single_crossref(cross_entry)
+  let cross_entry = Entry::new("bksin", MvBook)
+  cross_entry.fields.set("maintitle", [])
+  cross_entry.fields.set("address", [])
+  cross_entry.fields.set("title", [])
+  entry.resolve_single_crossref(cross_entry)
+  let cross_entry = Entry::new("bksin", MvBook)
+  cross_entry.fields.set("mainsubtitle", [])
+  entry.resolve_single_crossref(cross_entry)
+  let cross_entry = Entry::new("bksin", MvBook)
+  cross_entry.fields.set("maintitleaddon", [])
+  entry.resolve_single_crossref(cross_entry)
+  let entry = Entry::new("aksin", TechReport)
+  let cross_entry = Entry::new("bksin", MvBook)
+  cross_entry.fields.set("institution", [])
+  entry.resolve_single_crossref(cross_entry)
+  let entry = Entry::new("aksin", TechReport)
+  let cross_entry = Entry::new("bksin", MvBook)
+  cross_entry.fields.set("school", [])
+  entry.resolve_single_crossref(cross_entry)
+  let entry = Entry::new("aksin", MastersThesis)
+  let cross_entry = Entry::new("bksin", MvBook)
+  cross_entry.fields.set("school", [])
+  entry.resolve_single_crossref(cross_entry)
+  let entry = Entry::new("aksin", MastersThesis)
+  let cross_entry = Entry::new("bksin", MvBook)
+  cross_entry.fields.set("institution", [])
+  entry.resolve_single_crossref(cross_entry)
+  let entry = Entry::new("aksin", Article)
+  let cross_entry = Entry::new("bksin", MvBook)
+  cross_entry.fields.set("journaltitle", [])
+  entry.resolve_single_crossref(cross_entry)
+  let entry = Entry::new("aksin", Article)
+  let cross_entry = Entry::new("bksin", MvBook)
+  cross_entry.fields.set("journal", [])
+  entry.resolve_single_crossref(cross_entry)
+  let entry = Entry::new("", Article)
+  let res : Result[PermissiveType[EditorType], RetrievalError] = entry.get_as_permisstype(
+    "editor",
+  )
+  assert_eq(res, Err(Missing("editor")))
+  entry.set_as_permisstype("editor", Typed(EditorType::Compiler))
+  let res : Result[PermissiveType[EditorType], RetrievalError] = entry.get_as_permisstype(
+    "editor",
+  )
+  assert_eq(res, Ok(Typed(Compiler)))
 }
