@@ -316,7 +316,7 @@ pub fn Date::parse_three_fields(
       if day.is_empty() {
         raise TypeError((day_span, MissingNumber))
       }
-      let day = @strconv.parse_uint(day) catch { _ => 0 }
+      let day = @strconv.parse_uint(day) catch { _ => 1 }
       if day < 1 || day > 31 {
         raise TypeError((day_span, DayOutOfRange))
       }
@@ -327,11 +327,13 @@ pub fn Date::parse_three_fields(
 }
 
 ///|
+/// Creates an exact Date from a Datetime (non-approximate, non-uncertain).
 fn Date::from_datetime(atom : Datetime) -> Date {
   { approximate: false, uncertain: false, value: DateValue::At(atom) }
 }
 
 ///|
+/// Parses a date range pattern with wildcards (X) and returns start/end dates.
 fn Date::range_dates(source : String) -> (Datetime, Datetime) raise TypeError {
   let s = Scanner::new(source)
   ignore(s.eat_whitespace())
@@ -398,11 +400,13 @@ fn Date::range_dates(source : String) -> (Datetime, Datetime) raise TypeError {
 }
 
 ///|
+/// Delegates to the underlying DateValue's to_fieldset method.
 pub fn Date::to_fieldset(self : Date) -> Array[(String, String)] {
   self.value.to_fieldset()
 }
 
 ///|
+/// Parses a year value with optional era marker (BC/AD).
 fn get_year(s : Scanner) -> Int raise TypeError {
   ignore(s.eat_whitespace())
   let year_idx = s.cursor()
@@ -428,6 +432,7 @@ fn get_year(s : Scanner) -> Int raise TypeError {
 }
 
 ///|
+/// Parses era markers (BC/AD) from scanner input.
 fn parse_era_marker(s : Scanner) -> Bool? raise TypeError {
   ignore(s.eat_whitespace())
   let era_idx = s.cursor()
@@ -449,6 +454,7 @@ fn parse_era_marker(s : Scanner) -> Bool? raise TypeError {
 }
 
 ///|
+/// Consumes required hyphen with optional surrounding whitespace.
 fn get_hyphen(s : Scanner) -> Unit raise TypeError {
   ignore(s.eat_whitespace())
   if s.eat_while('-').is_empty() {
@@ -459,6 +465,7 @@ fn get_hyphen(s : Scanner) -> Unit raise TypeError {
 }
 
 ///|
+/// Creates a Span at current scanner position (0-width range).
 fn here(s : Scanner) -> Span {
   { start: s.cursor(), end: s.cursor() }
 }
@@ -486,6 +493,7 @@ pub impl Type for Date with to_chunks(self) {
 }
 
 ///|
+/// Converts a DateValue enum into an array of key-value string pairs.
 pub fn DateValue::to_fieldset(self : DateValue) -> Array[(String, String)] {
   match self {
     At(date) | After(date) | Before(date) => date.to_fieldset()
@@ -498,6 +506,7 @@ pub fn DateValue::to_fieldset(self : DateValue) -> Array[(String, String)] {
 }
 
 ///|
+/// Parses a string into a Datetime object
 fn Datetime::parse(src : String) -> Datetime raise TypeError {
   let s = Scanner::new(src)
   let pos = s.cursor()
@@ -575,6 +584,7 @@ fn Datetime::parse(src : String) -> Datetime raise TypeError {
 }
 
 ///|
+/// Converts a Datetime object into an array of key-value string pairs representing its components.
 pub fn Datetime::to_fieldset(self : Datetime) -> Array[(String, String)] {
   let year = format_year(self.year)
   let fields = [("year", year)]
@@ -637,6 +647,7 @@ pub impl Show for Datetime with output(self, logger) {
 }
 
 ///|
+/// Parses a signed integer
 fn parse_int(s : Scanner, lb : Int, ub : Int) -> Int? {
   ignore(s.eat_whitespace())
   let sign = s.eat_if(CharPredicate::new(c => c is ('+' | '-')))
@@ -652,6 +663,7 @@ fn parse_int(s : Scanner, lb : Int, ub : Int) -> Int? {
 }
 
 ///|
+/// Parses an unsigned integer
 fn parse_unsigned_int(s : Scanner, lb : Int, ub : Int) -> UInt? {
   ignore(s.eat_whitespace())
   let num = s.eat_while(CharPredicate::new(Char::is_numeric))
@@ -672,6 +684,7 @@ fn parse_year(s : Scanner) -> Int raise TypeError {
 }
 
 ///|
+/// Parses a 2-digit year string and converts it to a full 4-digit year.
 fn parse_short_year(s : Scanner) -> Int raise TypeError {
   let pos = s.cursor()
   let year = parse_int(s, 2, 2).or_error(
@@ -780,6 +793,7 @@ pub fn parse_colon(s : Scanner) -> Unit raise TypeError {
 }
 
 ///|
+/// Calculates the number of days in a given month of a specific year.
 fn days_in_month(month : UInt, year : Int) -> UInt {
   if month == 1 {
     if year % 4 == 0 && (year % 100 != 0 || year % 400 == 0) {
@@ -987,4 +1001,499 @@ test "test_parse_datetime" {
   })
   assert_true(date3 < date4)
   assert_true(date2 > date1)
+}
+
+///|
+test "test_Time" {
+  /// from_hms
+  let time = Time::from_hms(25, 60, 60)
+  assert_eq(time, None)
+  /// from_hms_offset
+  let time = Time::from_hms_offset(24, 60, 60, Utc)
+  assert_eq(time, None)
+  /// to_utc_seconds
+  let time = Time::from_hms(1, 30, 0).unwrap()
+  assert_eq(time.to_utc_seconds(), 5400)
+  let time = Time::from_hms_offset(1, 30, 0, Offset(true, 0, 30)).unwrap()
+  assert_eq(time.to_utc_seconds(), 3600)
+  /// compare
+  let t1 = Time::from_hms(1, 30, 0).unwrap()
+  let t2 = Time::from_hms(2, 30, 0).unwrap()
+  assert_true(t2 > t1)
+  let t1 = Time::from_hms_offset(1, 30, 0, Utc).unwrap()
+  let t2 = Time::from_hms(2, 30, 0).unwrap()
+  assert_false(t2 > t1)
+}
+
+///|
+test "test_time_offset" {
+  /// offset_hour
+  let hour = TimeOffset::offset_hour(-1)
+  assert_eq(hour, Offset(false, 1, 0))
+  /// to_seconds
+  assert_eq(TimeOffset::to_seconds(Utc), 0)
+  let hour = TimeOffset::offset_hour(-1)
+  assert_eq(hour.to_seconds(), -3600)
+}
+
+///|
+test "test_parse_date_TypeError" {
+  /// Date::parse
+  let _ = Date::parse([Spanned::detached(Normal("1X"))]) catch {
+    TypeError((_, kind)) => {
+      assert_eq(kind, WrongNumberOfDigits)
+      {
+        value: At({ year: 1, month: None, day: None, time: None }),
+        uncertain: true,
+        approximate: true,
+      }
+    }
+  }
+  let _ = Date::parse([Spanned::detached(Normal("2023-13-01/2024-01-01"))]) catch {
+    TypeError((_, kind)) => {
+      assert_eq(kind, MonthOutOfRange)
+      {
+        value: At({ year: 1, month: None, day: None, time: None }),
+        uncertain: true,
+        approximate: true,
+      }
+    }
+  }
+  let _ = Date::parse([Spanned::detached(Normal("2023-01-01/2024-13-01"))]) catch {
+    TypeError((_, kind)) => {
+      assert_eq(kind, MonthOutOfRange)
+      {
+        value: At({ year: 1, month: None, day: None, time: None }),
+        uncertain: true,
+        approximate: true,
+      }
+    }
+  }
+  let _ = Date::parse([Spanned::detached(Normal("2023-13-01/"))]) catch {
+    TypeError((_, kind)) => {
+      assert_eq(kind, MonthOutOfRange)
+      {
+        value: At({ year: 1, month: None, day: None, time: None }),
+        uncertain: true,
+        approximate: true,
+      }
+    }
+  }
+  let _ = Date::parse([Spanned::detached(Normal("/2023-13-01"))]) catch {
+    TypeError((_, kind)) => {
+      assert_eq(kind, MonthOutOfRange)
+      {
+        value: At({ year: 1, month: None, day: None, time: None }),
+        uncertain: true,
+        approximate: true,
+      }
+    }
+  }
+  let _ = Date::parse([Spanned::detached(Normal("/"))]) catch {
+    TypeError((_, kind)) => {
+      assert_eq(kind, UndefinedRange)
+      {
+        value: At({ year: 1, month: None, day: None, time: None }),
+        uncertain: true,
+        approximate: true,
+      }
+    }
+  }
+  /// Date::parse_three_fields
+  let _ = Date::parse_three_fields(
+    [Spanned::detached(Normal("12345"))],
+    None,
+    None,
+  ) catch {
+    TypeError((_, kind)) => {
+      assert_eq(kind, WrongNumberOfDigits)
+      {
+        value: At({ year: 1, month: None, day: None, time: None }),
+        uncertain: true,
+        approximate: true,
+      }
+    }
+  }
+  let _ = Date::parse_three_fields(
+    [Spanned::detached(Normal("1235"))],
+    Some([Spanned::detached(Normal("January"))]),
+    Some([Spanned::new(Normal("12AVC3.5"), { start: 2, end: 25 })]),
+  ) catch {
+    TypeError((_, kind)) => {
+      assert_eq(kind, InvalidNumber)
+      {
+        value: At({ year: 1, month: None, day: None, time: None }),
+        uncertain: true,
+        approximate: true,
+      }
+    }
+  }
+  let _ = Date::parse_three_fields(
+    [Spanned::detached(Normal("1235"))],
+    Some([Spanned::detached(Normal("January"))]),
+    Some([Spanned::detached(Normal("1235"))]),
+  ) catch {
+    TypeError((_, kind)) => {
+      assert_eq(kind, DayOutOfRange)
+      {
+        value: At({ year: 1, month: None, day: None, time: None }),
+        uncertain: true,
+        approximate: true,
+      }
+    }
+  }
+  let date = Date::parse_three_fields(
+    [Spanned::detached(Normal("1235"))],
+    Some([Spanned::detached(Normal("January"))]),
+    None,
+  )
+  assert_eq(
+    date,
+    Date::from_datetime({ year: 1235, month: Some(0), day: None, time: None }),
+  )
+  let _ = Date::parse_three_fields(
+    [Spanned::detached(Normal("1235"))],
+    Some([Spanned::detached(Normal("January "))]),
+    None,
+  ) catch {
+    TypeError((_, kind)) => {
+      assert_eq(kind, MissingNumber)
+      {
+        value: At({ year: 1, month: None, day: None, time: None }),
+        uncertain: true,
+        approximate: true,
+      }
+    }
+  }
+  let _ = Date::parse_three_fields(
+    [Spanned::detached(Normal("1235"))],
+    Some([Spanned::detached(Normal("January-36"))]),
+    None,
+  ) catch {
+    TypeError((_, kind)) => {
+      assert_eq(kind, DayOutOfRange)
+      {
+        value: At({ year: 1, month: None, day: None, time: None }),
+        uncertain: true,
+        approximate: true,
+      }
+    }
+  }
+  let _ = Date::parse_three_fields(
+    [Spanned::detached(Normal("1235"))],
+    Some([
+      Spanned::detached(
+        Normal(
+          "January-1111111111111111111111111111111111111111111111111111111111",
+        ),
+      ),
+    ]),
+    None,
+  ) catch {
+    TypeError((_, kind)) => {
+      assert_eq(kind, DayOutOfRange)
+      {
+        value: At({ year: 1, month: None, day: None, time: None }),
+        uncertain: true,
+        approximate: true,
+      }
+    }
+  }
+
+}
+
+///|
+test "test_range_dates" {
+  let _ = Date::range_dates("2023-X") catch {
+    TypeError((_, kind)) => {
+      assert_eq(kind, WrongNumberOfDigits)
+      (
+        { year: 1, month: None, day: None, time: None },
+        { year: 1, month: None, day: None, time: None },
+      )
+    }
+  }
+  let _ = Date::range_dates("2023-XX-X") catch {
+    TypeError((_, kind)) => {
+      assert_eq(kind, InvalidFormat)
+      (
+        { year: 1, month: None, day: None, time: None },
+        { year: 1, month: None, day: None, time: None },
+      )
+    }
+  }
+  assert_eq(
+    Date::range_dates("2023-XX"),
+    (
+      { year: 2023, month: Some(0), day: None, time: None },
+      { year: 2023, month: Some(11), day: None, time: None },
+    ),
+  )
+  let _ = Date::range_dates("2023-123") catch {
+    TypeError((_, kind)) => {
+      assert_eq(kind, WrongNumberOfDigits)
+      (
+        { year: 1, month: None, day: None, time: None },
+        { year: 1, month: None, day: None, time: None },
+      )
+    }
+  }
+  let _ = Date::range_dates("2023-15") catch {
+    TypeError((_, kind)) => {
+      assert_eq(kind, MonthOutOfRange)
+      (
+        { year: 1, month: None, day: None, time: None },
+        { year: 1, month: None, day: None, time: None },
+      )
+    }
+  }
+  let _ = Date::range_dates("2023-10-XXii") catch {
+    TypeError((_, kind)) => {
+      assert_eq(kind, InvalidFormat)
+      (
+        { year: 1, month: None, day: None, time: None },
+        { year: 1, month: None, day: None, time: None },
+      )
+    }
+  }
+  let _ = Date::range_dates("2023-10-X") catch {
+    TypeError((_, kind)) => {
+      assert_eq(kind, InvalidFormat)
+      (
+        { year: 1, month: None, day: None, time: None },
+        { year: 1, month: None, day: None, time: None },
+      )
+    }
+  }
+
+}
+
+///|
+test "test_error" {
+  /// get_year
+  let s = Scanner::new("+2023AD")
+  let _ = get_year(s) catch {
+    TypeError((_, kind)) => {
+      assert_eq(kind, InvalidFormat)
+      0
+    }
+  }
+  let s = Scanner::new("0AD")
+  let _ = get_year(s) catch {
+    TypeError((_, kind)) => {
+      assert_eq(kind, YearZeroCE)
+      0
+    }
+  }
+  /// parse_era_markers
+  let s = Scanner::new("AD2023")
+  let _ = parse_era_marker(s) catch {
+    TypeError((_, kind)) => {
+      assert_eq(kind, InvalidFormat)
+      None
+    }
+  }
+  let s = Scanner::new("BCahihifhi")
+  let _ = parse_era_marker(s) catch {
+    TypeError((_, kind)) => {
+      assert_eq(kind, InvalidFormat)
+      None
+    }
+  }
+  /// get_hyphen
+  let s = Scanner::new("BC")
+  let _ = get_hyphen(s) catch {
+    TypeError((_, kind)) => {
+      assert_eq(kind, InvalidFormat)
+      ()
+    }
+  }
+  /// Datetime::parse
+  let _ = Datetime::parse("2023-02-30") catch {
+    TypeError((_, kind)) => {
+      assert_eq(kind, DayOutOfRange)
+      { year: 1234, month: None, day: None, time: None }
+    }
+  }
+  let _ = Datetime::parse("2023-05-01 12:00") catch {
+    TypeError((_, kind)) => {
+      assert_eq(kind, InvalidFormat)
+      { year: 1234, month: None, day: None, time: None }
+    }
+  }
+  /// parse_day
+  let s = Scanner::new("36")
+  let _ = parse_day(s) catch {
+    TypeError((_, kind)) => {
+      assert_eq(kind, DayOutOfRange)
+      1
+    }
+  }
+  /// parse_hour
+  let s = Scanner::new("36")
+  let _ = parse_hour(s) catch {
+    TypeError((_, kind)) => {
+      assert_eq(kind, InvalidNumber)
+      1
+    }
+  }
+  /// parse_minutes_or_seconds
+  let s = Scanner::new("71")
+  let _ = parse_minutes_or_seconds(s) catch {
+    TypeError((_, kind)) => {
+      assert_eq(kind, InvalidNumber)
+      1
+    }
+  }
+  /// parse_offset
+  let s = Scanner::new("71")
+  let _ = parse_offset(s) catch {
+    TypeError((_, kind)) => {
+      assert_eq(kind, InvalidFormat)
+      Utc
+    }
+  }
+  /// parse_hyphen
+  let s = Scanner::new("71")
+  let _ = parse_hyphen(s) catch {
+    TypeError((_, kind)) => assert_eq(kind, InvalidFormat)
+  }
+  /// parse_colon
+  let s = Scanner::new("71")
+  let _ = parse_colon(s) catch {
+    TypeError((_, kind)) => assert_eq(kind, InvalidFormat)
+  }
+
+}
+
+///|
+test "test_dateValue" {
+  assert_eq(
+    DateValue::to_fieldset(
+      Between({ year: 1234, month: None, day: None, time: None }, {
+        year: 1234,
+        month: None,
+        day: None,
+        time: None,
+      }),
+    ),
+    [("year", "1234"), ("endyear", "1234")],
+  )
+}
+
+///|
+test "test_datetime" {
+  let date : Result[Datetime, TypeError] = try? Datetime::parse("2023-05-01T12")
+  let date = date.unwrap()
+  assert_eq(date, {
+    year: 2023,
+    month: Some(4),
+    day: Some(0),
+    time: Some({ hour: 12, minute: 0, second: 0, offset: None }),
+  })
+  let date : Result[Datetime, TypeError] = try? Datetime::parse(
+      "2023-05-01T12:34",
+    )
+  let date = date.unwrap()
+  assert_eq(date, {
+    year: 2023,
+    month: Some(4),
+    day: Some(0),
+    time: Some({ hour: 12, minute: 34, second: 0, offset: None }),
+  })
+  assert_eq(date.to_fieldset(), [
+    ("year", "2023"),
+    ("month", "05"),
+    ("day", "01"),
+  ])
+  let t1 = {
+    year: 2023,
+    month: Some(4),
+    day: Some(0),
+    time: Some({ hour: 12, minute: 34, second: 0, offset: None }),
+  }
+  let t2 = {
+    year: 2023,
+    month: Some(5),
+    day: Some(0),
+    time: Some({ hour: 12, minute: 34, second: 0, offset: None }),
+  }
+  assert_true(t2 > t1)
+  let t2 = {
+    year: 2023,
+    month: Some(4),
+    day: Some(12),
+    time: Some({ hour: 12, minute: 34, second: 0, offset: None }),
+  }
+  assert_true(t2 > t1)
+  let t2 = {
+    year: 2023,
+    month: Some(4),
+    day: Some(0),
+    time: Some({ hour: 12, minute: 50, second: 0, offset: None }),
+  }
+  assert_true(t2 > t1)
+  let t2 = { year: 2023, month: Some(4), day: Some(0), time: None }
+  assert_false(t2 > t1)
+  let logger = StringBuilder::new()
+  t2.output(logger)
+  assert_eq(logger.to_string(), "2023-05-01\n")
+  let t2 = {
+    year: 2023,
+    month: None,
+    day: Some(0),
+    time: Some({ hour: 12, minute: 50, second: 0, offset: None }),
+  }
+  assert_true(t2 > t1)
+  assert_eq(logger.to_string(), "2023-05-01\n")
+  let t2 = {
+    year: 2023,
+    month: Some(4),
+    day: None,
+    time: Some({ hour: 12, minute: 50, second: 0, offset: None }),
+  }
+  assert_true(t2 > t1)
+}
+
+///|
+test "test_parse_uint" {
+  let s = Scanner::new("500")
+  assert_eq(parse_unsigned_int(s, 1, 2), None)
+}
+
+///|
+test "test_parse_short_years" {
+  let s = Scanner::new("49")
+  assert_eq(parse_short_year(s), 2049)
+  let s = Scanner::new("77")
+  assert_eq(parse_short_year(s), 1977)
+}
+
+///|
+test "test_helper_func" {
+  assert_eq(days_in_month(1, 2004), 29)
+  assert_eq(get_month_for_abbr("jan"), Some(("January", 0)))
+  assert_eq(get_month_for_abbr("feb"), Some(("February", 1)))
+  assert_eq(get_month_for_abbr("mar"), Some(("March", 2)))
+  assert_eq(get_month_for_abbr("apr"), Some(("April", 3)))
+  assert_eq(get_month_for_abbr("may"), Some(("May", 4)))
+  assert_eq(get_month_for_abbr("jun"), Some(("June", 5)))
+  assert_eq(get_month_for_abbr("jul"), Some(("July", 6)))
+  assert_eq(get_month_for_abbr("aug"), Some(("August", 7)))
+  assert_eq(get_month_for_abbr("sep"), Some(("September", 8)))
+  assert_eq(get_month_for_abbr("oct"), Some(("October", 9)))
+  assert_eq(get_month_for_abbr("nov"), Some(("November", 10)))
+  assert_eq(get_month_for_abbr("dec"), Some(("December", 11)))
+  assert_eq(get_month_for_name("January"), Some(0))
+  assert_eq(get_month_for_name("February"), Some(1))
+  assert_eq(get_month_for_name("March"), Some(2))
+  assert_eq(get_month_for_name("April"), Some(3))
+  assert_eq(get_month_for_name("May"), Some(4))
+  assert_eq(get_month_for_name("June"), Some(5))
+  assert_eq(get_month_for_name("July"), Some(6))
+  assert_eq(get_month_for_name("August"), Some(7))
+  assert_eq(get_month_for_name("September"), Some(8))
+  assert_eq(get_month_for_name("October"), Some(9))
+  assert_eq(get_month_for_name("November"), Some(10))
+  assert_eq(get_month_for_name("December"), Some(11))
 }

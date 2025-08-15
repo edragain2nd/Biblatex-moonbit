@@ -9,7 +9,7 @@ pub fn parse_field(
   abbreviations : Array[Pair],
 ) -> Chunks raise ParseError {
   let chunks : Array[Spanned[Chunk]] = []
-  for e in field.inner() {
+  for e in field.0 {
     match e.v {
       Normal(s) =>
         chunks.append(ContentParser::new(key, s, e.span.start).parse())
@@ -22,6 +22,7 @@ pub fn parse_field(
 }
 
 ///|
+/// A parser for structured content
 priv struct ContentParser {
   s : Scanner
   verb_field : Bool
@@ -32,6 +33,7 @@ priv struct ContentParser {
 }
 
 ///|
+/// Creates a new parser for the given field content.
 fn ContentParser::new(
   key : String,
   field : String,
@@ -48,6 +50,10 @@ fn ContentParser::new(
 }
 
 ///|
+/// Main parsing entry point that:
+/// 1. Delegates to parse_impl()
+/// 2. Adjusts all spans by the global offset
+/// 3. Converts parse errors with correct positions
 fn ContentParser::parse(self : ContentParser) -> Chunks raise ParseError {
   let offset = self.offset
   self
@@ -64,6 +70,10 @@ fn ContentParser::parse(self : ContentParser) -> Chunks raise ParseError {
 }
 
 ///|
+/// Core parsing implementation that:
+/// - Handles special characters ($, {, }, \, etc.)
+/// - Maintains brace nesting depth
+/// - Builds chunks incrementally
 fn ContentParser::parse_impl(self : ContentParser) -> Chunks raise ParseError {
   let mut depth = 0
   self.current_chunk = ContentParser::default_chunk(depth)
@@ -72,11 +82,7 @@ fn ContentParser::parse_impl(self : ContentParser) -> Chunks raise ParseError {
     match c {
       '\\' => {
         let sequence = self.backslash()
-        self.current_chunk = match self.current_chunk {
-          Math(s) => Math(s + sequence)
-          Normal(s) => Normal(s + sequence)
-          Verbatim(s) => Verbatim(s + sequence)
-        }
+        self.current_chunk = self.current_chunk.pushstr(sequence)
       }
       '$' if not(self.verb_field) => {
         self.turnaround(depth)
@@ -107,7 +113,7 @@ fn ContentParser::parse_impl(self : ContentParser) -> Chunks raise ParseError {
       }
       '-' => {
         let mut count = 0
-        let hyphens = self.s.eat_while(
+        let _ = self.s.eat_while(
           CharPredicate::new(c => {
             let res = c == '-' && count < 3
             if res {
@@ -117,47 +123,18 @@ fn ContentParser::parse_impl(self : ContentParser) -> Chunks raise ParseError {
           }),
         )
         match count {
-          1 =>
-            self.current_chunk = match self.current_chunk {
-              Math(s) => Math(s + "-")
-              Normal(s) => Normal(s + "-")
-              Verbatim(s) => Verbatim(s + "-")
-            }
-          2 =>
-            self.current_chunk = match self.current_chunk {
-              Math(s) => Math(s + "–")
-              Normal(s) => Normal(s + "–")
-              Verbatim(s) => Verbatim(s + "–")
-            }
-          3 =>
-            self.current_chunk = match self.current_chunk {
-              Math(s) => Math(s + "—")
-              Normal(s) => Normal(s + "—")
-              Verbatim(s) => Verbatim(s + "—")
-            }
-          _ =>
-            self.current_chunk = match self.current_chunk {
-              Math(s) => Math(s + hyphens)
-              Normal(s) => Normal(s + hyphens)
-              Verbatim(s) => Verbatim(s + hyphens)
-            }
+          1 => self.current_chunk = self.current_chunk.pushstr("-")
+          2 => self.current_chunk = self.current_chunk.pushstr("–")
+          _ => self.current_chunk = self.current_chunk.pushstr("—")
         }
       }
       _ if c.is_whitespace() => {
-        self.current_chunk = match self.current_chunk {
-          Math(s) => Math(s + " ")
-          Normal(s) => Normal(s + " ")
-          Verbatim(s) => Verbatim(s + " ")
-        }
+        self.current_chunk = self.current_chunk.pushstr(" ")
         ignore(self.s.eat_whitespace())
       }
       _ => {
         let eaten = self.s.eat().unwrap().to_string()
-        self.current_chunk = match self.current_chunk {
-          Math(s) => Math(s + eaten)
-          Normal(s) => Normal(s + eaten)
-          Verbatim(s) => Verbatim(s + eaten)
-        }
+        self.current_chunk = self.current_chunk.pushstr(eaten)
       }
     }
     peeked = self.s.peek()
@@ -169,6 +146,7 @@ fn ContentParser::parse_impl(self : ContentParser) -> Chunks raise ParseError {
 }
 
 ///|
+/// Finalizes current chunk and starts new one at given depth
 fn ContentParser::turnaround(self : ContentParser, depth : Int) -> Unit {
   let chunk = self.current_chunk
   self.current_chunk = ContentParser::default_chunk(depth)
@@ -179,6 +157,7 @@ fn ContentParser::turnaround(self : ContentParser, depth : Int) -> Unit {
 }
 
 ///|
+/// Handles backslash escape sequences
 fn ContentParser::backslash(self : ContentParser) -> String raise ParseError {
   self.eat_assert('\\')
   match self.s.peek() {
@@ -196,11 +175,12 @@ fn ContentParser::backslash(self : ContentParser) -> String raise ParseError {
 }
 
 ///|
+/// Processes command sequences
 fn ContentParser::command(self : ContentParser) -> String raise ParseError {
   let pos = self.s.cursor()
   let valid_start = self.s
     .peek()
-    .map(c => not(c.is_whitespace() && not(c.is_control())))
+    .map(c => not(c.is_whitespace()) && not(c.is_control()))
     .unwrap_or_default()
   if not(valid_start) {
     raise ParseError(
@@ -253,6 +233,7 @@ fn ContentParser::command(self : ContentParser) -> String raise ParseError {
 }
 
 ///|
+/// Parses math content between $ delimiters
 fn ContentParser::math(self : ContentParser) -> Spanned[Chunk] raise ParseError {
   self.eat_assert('$')
   let idx = self.s.cursor()
@@ -267,6 +248,7 @@ fn ContentParser::math(self : ContentParser) -> Spanned[Chunk] raise ParseError 
 }
 
 ///|
+/// Asserts next character matches expected
 fn ContentParser::eat_assert(self : ContentParser, c : Char) -> Unit {
   if self.s.eat() != Some(c) {
     abort("assertion failed: expected '\{c}'")
@@ -274,11 +256,15 @@ fn ContentParser::eat_assert(self : ContentParser, c : Char) -> Unit {
 }
 
 ///|
+/// Returns current position as zero-width span
 fn ContentParser::here(self : ContentParser) -> Span {
   { start: self.s.cursor(), end: self.s.cursor() }
 }
 
 ///|
+/// Creates appropriate empty chunk based on nesting depth:
+/// - Depth > 0 → Verbatim chunk
+/// - Depth 0 → Normal chunk
 fn ContentParser::default_chunk(depth : Int) -> Chunk {
   if depth > 0 {
     Verbatim("")
@@ -334,7 +320,11 @@ fn execute_command(command : String, arg : String?) -> String {
           c => c
         }
         let combined = @compose.compose(last, combine)
-        let str = if chars.is_empty() { "" } else { chars.to_string() }
+        let str = if chars.is_empty() {
+          ""
+        } else {
+          chars.map(c => c.to_string()).join("")
+        }
         let mut res = str + combined.unwrap_or(last).to_string()
         if combined is None {
           res += combine.to_string()
@@ -456,11 +446,7 @@ fn flatten(chunks : Chunks) -> Unit {
       let start = chunks[i - 1].span.start
       let end = chunks[i].span.end
       chunks[i] = Spanned::new(Normal(""), { start: 0, end: 0 })
-      let merged_former = match former {
-        Verbatim(s) => Chunk::Verbatim(s + later.get())
-        Normal(s) => Chunk::Normal(s + later.get())
-        Math(s) => Chunk::Math(s + later.get())
-      }
+      let merged_former = former.pushstr(later.get())
       chunks[i - 1] = Spanned::new(merged_former, { start, end })
       ignore(chunks.remove(i))
     } else {
@@ -475,6 +461,16 @@ fn flatten(chunks : Chunks) -> Unit {
 fn is_single_char_func(c : Char, ws : Bool) -> Bool {
   c is ('"' | '´' | '`' | '\'' | '^' | '~' | '=' | '.' | '\\' | '-') ||
   (ws && c is ('b' | 'c' | 'd' | 'H' | 'k' | 'r' | 'u' | 'v'))
+}
+
+///|
+/// Appends a string to the content of a Chunk, preserving its variant type.
+fn Chunk::pushstr(self : Chunk, str : String) -> Chunk {
+  match self {
+    Verbatim(s) => Verbatim(s + str)
+    Normal(s) => Normal(s + str)
+    Math(s) => Math(s + str)
+  }
 }
 
 ///|
@@ -562,12 +558,16 @@ test "test_math" {
   assert_eq(res[2].v, n(" International Conference on How To Make $$"))
   assert_eq(res.length(), 3)
 }
-//FAIDED
 
 ///|
 test "test_commands" {
   let field = [
     z(RawChunk::Normal("Bose\\textendash{}Einstein uses Win\\-dows")),
+  ]
+  let res = parse_field("", field, [])
+  assert_eq(res[0].v, n("Bose–Einstein uses Windows"))
+  let field = [
+    z(RawChunk::Normal("Bose\\textendash{{}}Einstein uses Win\\-dows")),
   ]
   let res = parse_field("", field, [])
   assert_eq(res[0].v, n("Bose–Einstein uses Windows"))
@@ -580,4 +580,164 @@ test "test_hyphens" {
   ]
   let res = parse_field("", field, [])
   assert_eq(res[0].v, n("- Knitting A–Z — A practical guide —–"))
+  let field = [z(RawChunk::Normal("{--}"))]
+  let res = parse_field("", field, [])
+  assert_eq(res[1].v, v("–"))
+  let field = [z(RawChunk::Normal("{---}"))]
+  let res = parse_field("", field, [])
+  assert_eq(res[1].v, v("—"))
+}
+
+///|
+test "test_error" {
+  let field = [z(RawChunk::Normal("} invalid text"))]
+  let _ = parse_field("", field, []) catch {
+    ParseError((_, kind)) => {
+      assert_eq(kind, Unexpected(ClosingBrace))
+      []
+    }
+  }
+  let field = [z(RawChunk::Normal("Bose\\textendash{Einstein uses Win\\-dows"))]
+  let _ = parse_field("", field, []) catch {
+    ParseError((_, kind)) => {
+      assert_eq(kind, UnexpectedEof)
+      []
+    }
+  }
+  let field = [z(RawChunk::Normal("$122"))]
+  let _ = parse_field("", field, []) catch {
+    ParseError((_, kind)) => {
+      assert_eq(kind, UnexpectedEof)
+      []
+    }
+  }
+  let parser = ContentParser::new("", "\u0000", 0)
+  let _ = parser.command() catch {
+    ParseError((_, kind)) => {
+      assert_eq(kind, MalformedCommand)
+      ""
+    }
+  }
+  let _ = resolve_abbreviation("", "wizzz", { start: 1, end: 2 }, []) catch {
+    ParseError((_, kind)) => {
+      assert_eq(kind, UnknownAbbreviation("wizzz"))
+      []
+    }
+  }
+
+}
+
+///|
+test "test_backslash" {
+  let field = [z(RawChunk::Normal("\\ "))]
+  let res = parse_field("", field, [])
+  assert_eq(res[0].v, Normal("  "))
+  let field = [z(RawChunk::Normal("\\"))]
+  let _ = parse_field("", field, []) catch {
+    ParseError((_, kind)) => {
+      assert_eq(kind, UnexpectedEof)
+      []
+    }
+  }
+
+}
+
+///|
+test "test_pushstr" {
+  let chunk : Chunk = Math("a+b")
+  assert_eq(chunk.pushstr(" "), Math("a+b "))
+}
+
+///|
+test "panic_ear_assert" {
+  let parser = ContentParser::new("", "w", 0)
+  parser.eat_assert('z')
+}
+
+///|
+test "test_execute_command" {
+  assert_eq(execute_command("LaTeX", None), "LaTeX")
+  assert_eq(execute_command("TeX", None), "TeX")
+  assert_eq(execute_command("textendash", None), "–")
+  assert_eq(execute_command("textemdash", None), "—")
+  assert_eq(execute_command("textquotesingle", None), "'")
+  assert_eq(execute_command("textquotedblleft", None), "“")
+  assert_eq(execute_command("textquotedblright", None), "”")
+  assert_eq(execute_command("textquoteleft", None), "‘")
+  assert_eq(execute_command("textquoteright", None), "’")
+  assert_eq(execute_command("textquotestraightdblbase", None), "„")
+  assert_eq(execute_command("quotedblbase", None), "„")
+  assert_eq(execute_command("textquotestraightbase", None), "‚")
+  assert_eq(execute_command("quotesinglbase", None), "‚")
+  assert_eq(execute_command("textquotedbl", None), "\"")
+  assert_eq(execute_command("textasciicircum", None), "^")
+  assert_eq(execute_command("textasciigrave", None), "`")
+  assert_eq(execute_command("textasciitilde", None), "~")
+  assert_eq(execute_command("textasteriskcentered", None), "⁎")
+  assert_eq(execute_command("textbackslash", None), "\\")
+  assert_eq(execute_command("textbar", None), "|")
+  assert_eq(execute_command("textbraceleft", None), "{")
+  assert_eq(execute_command("textbraceright", None), "}")
+  assert_eq(execute_command("textbullet", None), "•")
+  assert_eq(execute_command("textdagger", None), "†")
+  assert_eq(execute_command("textdaggerdbl", None), "‡")
+  assert_eq(execute_command("textdollar", None), "$")
+  assert_eq(execute_command("textless", None), "<")
+  assert_eq(execute_command("textgreater", None), ">")
+  assert_eq(execute_command("textexclamdown", None), "¡")
+  assert_eq(execute_command("textquestiondown", None), "¿")
+  assert_eq(execute_command("textordfeminine", None), "ª")
+  assert_eq(execute_command("textordmasculine", None), "º")
+  assert_eq(execute_command("textperiodcentered", None), "·")
+  assert_eq(execute_command("textregistered", None), "®")
+  assert_eq(execute_command("texttrademark", None), "™")
+  assert_eq(execute_command("textsection", None), "§")
+  assert_eq(execute_command("textunderscore", None), "_")
+  assert_eq(execute_command("textvisiblespace", None), "␣")
+  assert_eq(execute_command("guillemotleft", None), "«")
+  assert_eq(execute_command("guillemotright", None), "»")
+  assert_eq(execute_command("guilsinglleft", None), "‹")
+  assert_eq(execute_command("guilsinglright", None), "›")
+  assert_eq(execute_command("aa", None), "å")
+  assert_eq(execute_command("AA", None), "Å")
+  assert_eq(execute_command("ae", None), "æ")
+  assert_eq(execute_command("AE", None), "Æ")
+  assert_eq(execute_command("dh", None), "ð")
+  assert_eq(execute_command("dj", None), "đ")
+  assert_eq(execute_command("DJ", None), "Đ")
+  assert_eq(execute_command("ng", None), "ŋ")
+  assert_eq(execute_command("NG", None), "Ŋ")
+  assert_eq(execute_command("l", None), "ł")
+  assert_eq(execute_command("L", None), "Ł")
+  assert_eq(execute_command("i", None), "ı")
+  assert_eq(execute_command("oe", None), "œ")
+  assert_eq(execute_command("OE", None), "Œ")
+  assert_eq(execute_command("o", None), "ø")
+  assert_eq(execute_command("O", None), "Ø")
+  assert_eq(execute_command("ss", None), "ß")
+  assert_eq(execute_command("SS", None), "ẞ")
+  assert_eq(execute_command("th", None), "þ")
+  assert_eq(execute_command("TH", None), "Þ")
+  assert_eq(execute_command("P", None), "¶")
+  assert_eq(execute_command("textparagraph", None), "¶")
+  assert_eq(execute_command("S", None), "§")
+  assert_eq(execute_command("copyright", None), "©")
+  assert_eq(execute_command("copyright", Some("2024")), "©2024")
+  assert_eq(execute_command("ddag", None), "‡")
+  assert_eq(execute_command("dots", None), "…")
+  assert_eq(execute_command("textellipsis", None), "…")
+  assert_eq(execute_command("pounds", None), "£")
+  assert_eq(execute_command("textquotesingle", None), "'")
+  assert_eq(execute_command("`", Some("a")), "à")
+  assert_eq(execute_command("´", Some("a")), "á")
+  assert_eq(execute_command(".", Some("a")), "ȧ")
+  assert_eq(execute_command("o", Some("=")), "≠")
+  assert_eq(execute_command("cmd", Some("a")), "\\cmd{{a}}")
+  assert_eq(execute_command("^", Some("")), "^")
+  assert_eq(execute_command("~", Some("")), "~")
+  assert_eq(execute_command("´", Some("")), "\u{301}")
+  assert_eq(execute_command("~", Some("ı")), "ĩ")
+  assert_eq(execute_command("~", Some("ȷ")), "j̃")
+  assert_eq(execute_command("~", Some("wȷ")), "wj̃")
+  assert_eq(execute_command("=", None), "\u{304}")
 }

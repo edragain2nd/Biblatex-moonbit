@@ -385,6 +385,7 @@ pub fn split_token_lists_with_kw(
   out.push(latest)
   out
 }
+
 ///| Splits a chunk array into two at the first occurrence of the character `c`.
 /// `omit` controls whether the output will contain `c`.
 pub fn split_at_normal_char(
@@ -484,7 +485,7 @@ pub fn count_num_char(chunks : Chunks, c : Char) -> Int {
 /// ```moonbit
 /// let chunks : Chunks = [{v: Normal("Monroe, Brian Albert"), span: {start: 2147483647, end: 2147483647}}]
 /// let res : ArrayPerson = parse_chunks(chunks)
-/// inspect(res.inner(),content=("[Brian Albert Monroe]"))
+/// inspect(res.0,content=("[Brian Albert Monroe]"))
 /// ```
 pub fn[T : Type] parse_chunks(chunks : Chunks) -> T raise TypeError {
   T::from_chunks(chunks)

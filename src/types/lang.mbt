@@ -47,7 +47,7 @@ pub(all) enum Language {
 
 ///|
 pub fn Language::from_str(s : String) -> Language? {
-  match s {
+  match s.to_lower() {
     "basque" => Some(Basque)
     "bulgarian" => Some(Bulgarian)
     "catalan" => Some(Catalan)

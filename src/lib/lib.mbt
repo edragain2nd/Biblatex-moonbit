@@ -148,7 +148,7 @@ pub fn Bibliography::insert(self : Bibliography, entry : Entry) -> Entry? {
       "ids",
     )
     if convert_result(result_arraystring).unwrap() is Some(ids) {
-      for alias_ in ids.inner() {
+      for alias_ in ids.0 {
         self.keys[alias_] = index
       }
     }
@@ -322,7 +322,7 @@ pub fn Entry::parents(self : Entry) -> Result[Array[String], TypeError] {
   }
   let xrefs = xrefs.unwrap()
   if xrefs is Some(xrefs) {
-    parents.append(xrefs.inner())
+    parents.append(xrefs.0)
   }
   Ok(parents)
 }
@@ -609,7 +609,7 @@ fn Entry::resolve_crossrefs(
   let array_s : Result[ArrayString, RetrievalError] = self.get_as("xdata")
   let array_s = convert_result(array_s).unwrap_or_error()
   if array_s is Some(keys) {
-    let keys = keys.inner()
+    let keys = keys.0
     for key in keys {
       let entry = bib.get(key)
       if entry is Some(entry) {
@@ -787,29 +787,29 @@ test "test_keys" {
 }
 
 ///|
-// test "test_gral_paper" {
-//   dump_debug("tests/gral.bib")
-// }
+test "test_gral_paper" {
+  dump_debug("tests/gral.bib")
+}
 
-// ///|
-// test "test_ds_report" {
-//   dump_debug("tests/ds.bib")
-// }
+///|
+test "test_ds_report" {
+  dump_debug("tests/ds.bib")
+}
 
-// ///|
-// test "test_libra_paper" {
-//   dump_author_title("tests/libra.bib")
-// }
+///|
+test "test_libra_paper" {
+  dump_author_title("tests/libra.bib")
+}
 
-// ///|
-// test "test_rass_report" {
-//   dump_author_title("tests/rass.bib")
-// }
+///|
+test "test_rass_report" {
+  dump_author_title("tests/rass.bib")
+}
 
-// ///|
-// test "test_polar_report" {
-//   dump_author_title("tests/polaritons.bib")
-// }
+///|
+test "test_polar_report" {
+  dump_author_title("tests/polaritons.bib")
+}
 
 ///|
 test "test_comments" {
@@ -827,9 +827,9 @@ test "test_comments" {
 }
 
 ///|
-// test "test_extended_name_format" {
-//   dump_author_title("tests/extended_name_format.bib")
-// }
+test "test_extended_name_format" {
+  dump_author_title("tests/extended_name_format.bib")
+}
 
 ///|
 fn dump_debug(file : String) -> Unit raise @fs.IOError {

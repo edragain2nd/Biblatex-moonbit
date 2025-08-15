@@ -541,7 +541,7 @@ pub fn is_id_continue(c : Char) -> Bool {
 
 ///|
 impl Show for Field with to_string(self) {
-  let field = self.inner()
+  let field = self.0
   if field.length() == 1 {
     let raw_chunk = field.get(0).unwrap().v
     if raw_chunk is Normal(s) {

@@ -104,7 +104,7 @@ pub enum AuthorMode {
   AuthorRequiredEditorOptional
   /// The `editor` field must be set while the `author` field must not be set.
   EditorRequiredAuthorForbidden
-}
+} derive(Show, Eq)
 
 ///|
 impl Default for AuthorMode with default() {
@@ -112,6 +112,7 @@ impl Default for AuthorMode with default() {
 }
 
 ///|
+/// Returns the array of valid contributor roles for this author mode.
 pub fn AuthorMode::possible(self : AuthorMode) -> Array[String] {
   match self {
     OneRequired | BothRequired | AuthorRequiredEditorOptional =>
@@ -138,7 +139,7 @@ pub(all) enum PagesChapterMode {
   PagesOptional
   /// The `pages` field must be present.
   PagesRequired
-}
+} derive(Show, Eq)
 
 ///|
 impl Default for PagesChapterMode with default() {
@@ -146,6 +147,7 @@ impl Default for PagesChapterMode with default() {
 }
 
 ///|
+/// Returns the array of valid contributor roles for this pages chapter mode.
 pub fn PagesChapterMode::possible(self : PagesChapterMode) -> Array[String] {
   match self {
     OneRequired | BothOptional => ["pages", "chapter"]
@@ -172,7 +174,7 @@ pub(all) struct Requirments {
   mut page_chapter_field : PagesChapterMode
   /// Shows whether a `date` or `year` field has to be present.
   mut needs_date : Bool
-} derive(Default)
+} derive(Default, Show, Eq)
 
 ///|
 /// Parse from a string.
@@ -653,4 +655,284 @@ pub fn is_verbatim_field(key : String) -> Bool {
     | "urlraw" => true
     _ => false
   }
+}
+
+///|
+test "test_show" {
+  assert_eq(EntryType::Unknown("custom").to_string(), "Unknown(custom)")
+  assert_eq(EntryType::Article.to_string(), "article")
+  assert_eq(EntryType::Book.to_string(), "book")
+  assert_eq(EntryType::Booklet.to_string(), "booklet")
+  assert_eq(EntryType::InBook.to_string(), "inbook")
+  assert_eq(EntryType::InCollection.to_string(), "incollection")
+  assert_eq(EntryType::InProceedings.to_string(), "inproceedings")
+  assert_eq(EntryType::Manual.to_string(), "manual")
+  assert_eq(EntryType::MastersThesis.to_string(), "mastersthesis")
+  assert_eq(EntryType::PhdThesis.to_string(), "phdthesis")
+  assert_eq(EntryType::Misc.to_string(), "misc")
+  assert_eq(EntryType::Proceedings.to_string(), "proceedings")
+  assert_eq(EntryType::TechReport.to_string(), "techreport")
+  assert_eq(EntryType::Unpublished.to_string(), "unpublished")
+  assert_eq(EntryType::MvBook.to_string(), "mvbook")
+  assert_eq(EntryType::BookInBook.to_string(), "bookinbook")
+  assert_eq(EntryType::SuppBook.to_string(), "suppbook")
+  assert_eq(EntryType::Periodical.to_string(), "periodical")
+  assert_eq(EntryType::SuppPeriodical.to_string(), "suppperiodical")
+  assert_eq(EntryType::Collection.to_string(), "collection")
+  assert_eq(EntryType::MvCollection.to_string(), "mvcollection")
+  assert_eq(EntryType::SuppCollection.to_string(), "suppcollection")
+  assert_eq(EntryType::Reference.to_string(), "reference")
+  assert_eq(EntryType::MvReference.to_string(), "mvreference")
+  assert_eq(EntryType::InReference.to_string(), "inreference")
+  assert_eq(EntryType::MvProceedings.to_string(), "mvproceedings")
+  assert_eq(EntryType::Report.to_string(), "report")
+  assert_eq(EntryType::Patent.to_string(), "patent")
+  assert_eq(EntryType::Thesis.to_string(), "thesis")
+  assert_eq(EntryType::Online.to_string(), "online")
+  assert_eq(EntryType::Software.to_string(), "software")
+  assert_eq(EntryType::Dataset.to_string(), "dataset")
+  assert_eq(EntryType::Set.to_string(), "set")
+  assert_eq(EntryType::XData.to_string(), "xdata")
+  let s = StringBuilder::new()
+  let entry = XData
+  entry.output(s)
+  assert_eq(s.to_string(), "xdata\n")
+}
+
+///|
+test "test_possible" {
+  assert_eq(AuthorMode::possible(AuthorRequired), ["author"])
+  assert_eq(AuthorMode::possible(EditorRequiredAuthorForbidden), ["editor"])
+}
+
+///|
+test "test_entry_type" {
+  let default_option = [
+    "note", "location", "titleadddon", "subtitle", "url", "urldate", "doi", "eprint",
+    "eprintclass", "eprinttype", "pubstate", "language", "addendum",
+  ]
+  let entry = EntryType::new("booklet")
+  assert_eq(entry, Booklet)
+  assert_eq(
+    EntryType::requirements(entry).optional,
+    default_option + ["howpublished", "type", "pagetotal"],
+  )
+  let entry = EntryType::new("inbook")
+  assert_eq(entry, InBook)
+  assert_eq(
+    EntryType::requirements(entry).optional,
+    default_option +
+    [
+      "bookauthor", "volume", "volumes", "part", "type", "series", "number", "edition",
+      "annotator", "commentator", "translator", "origlanguage", "afterword", "foreword",
+      "introduction", "maintitle", "mainsubtitle", "maintitleaddon", "booksubtitle",
+      "booktitleaddon", "isbn",
+    ],
+  )
+  let entry = EntryType::new("mastersthesis")
+  assert_eq(entry, MastersThesis)
+  assert_eq(entry.to_biblatex(), Thesis)
+  let entry = EntryType::new("phdthesis")
+  assert_eq(entry, PhdThesis)
+  assert_eq(entry.to_biblatex(), Thesis)
+  let entry = EntryType::new("proceedings")
+  assert_eq(entry, Proceedings)
+  let entry = EntryType::new("unpublished")
+  assert_eq(entry, Unpublished)
+  let entry = EntryType::new("mvbook")
+  assert_eq(entry, MvBook)
+  assert_eq(entry.to_bibtex(), Book)
+  let entry = EntryType::new("bookinbook")
+  assert_eq(entry, BookInBook)
+  assert_eq(entry.to_bibtex(), InBook)
+  let entry = EntryType::new("suppbook")
+  assert_eq(entry, SuppBook)
+  assert_eq(entry.to_bibtex(), InBook)
+  let entry = EntryType::new("suppperiodical")
+  assert_eq(entry, SuppPeriodical)
+  assert_eq(entry.to_bibtex(), Article)
+  let entry = EntryType::new("collection")
+  assert_eq(entry, Collection)
+  assert_true(entry.is_collection())
+  assert_eq(entry.to_bibtex(), Proceedings)
+  let entry = EntryType::new("mvcollection")
+  assert_eq(entry, MvCollection)
+  assert_eq(entry.to_bibtex(), Proceedings)
+  let entry = EntryType::new("suppcollection")
+  assert_eq(entry, SuppCollection)
+  assert_eq(entry.to_bibtex(), InCollection)
+  let entry = EntryType::new("reference")
+  assert_eq(entry, Reference)
+  let entry = EntryType::new("mvreference")
+  assert_eq(entry, MvReference)
+  let entry = EntryType::new("patent")
+  assert_eq(entry, Patent)
+  assert_eq(entry.to_bibtex(), Misc)
+  let entry = EntryType::new("software")
+  assert_eq(entry, Software)
+  let entry = EntryType::new("dataset")
+  assert_eq(entry, Dataset)
+  assert_eq(entry.to_bibtex(), Misc)
+  let entry = EntryType::new("set")
+  assert_eq(entry, Set)
+  assert_eq(entry.to_bibtex(), Misc)
+  let entry = EntryType::new("conference")
+  assert_eq(entry, InProceedings)
+  let entry = EntryType::new("electronic")
+  assert_eq(entry, Online)
+  assert_eq(entry.to_bibtex(), Misc)
+  let entry = EntryType::new("techreport")
+  assert_eq(entry, TechReport)
+  assert_eq(entry.to_biblatex(), Report)
+  let entry = EntryType::new("unknown")
+  assert_eq(entry.to_biblatex(), Misc)
+  assert_eq(entry.to_bibtex(), Misc)
+  ///
+  assert_eq(EntryType::to_bibtex(Periodical), Misc)
+  assert_eq(EntryType::to_bibtex(Reference), Misc)
+  assert_eq(EntryType::to_bibtex(MvReference), Misc)
+  assert_eq(EntryType::to_bibtex(InReference), InCollection)
+  assert_eq(EntryType::to_bibtex(MvProceedings), Proceedings)
+  assert_eq(EntryType::to_bibtex(Report), TechReport)
+  assert_eq(EntryType::to_bibtex(Software), Misc)
+  assert_eq(EntryType::to_bibtex(XData), Misc)
+  assert_eq(EntryType::to_bibtex(InBook), InBook)
+  ///
+  assert_eq(
+    EntryType::requirements(InCollection).optional,
+    default_option +
+    [
+      "volume", "type", "series", "number", "edition", "annotator", "commentator",
+      "translator", "origlanguage", "afterword", "foreword", "introduction", "maintitle",
+      "mainsubtitle", "maintitleaddon", "booksubtitle", "booktitleaddon", "part",
+      "volumes", "isbn",
+    ],
+  )
+  assert_eq(
+    EntryType::requirements(InProceedings).optional,
+    default_option +
+    [
+      "number", "organization", "series", "volume", "volumes", "part", "publisher",
+      "maintitle", "mainsubtitle", "maintitleaddon", "booksubtitle", "booktitleaddon",
+      "eventtitle", "eventsubtitle", "eventtitleaddon", "venue", "isbn", "publisher",
+    ],
+  )
+  assert_eq(
+    EntryType::requirements(Manual).optional,
+    default_option +
+    [
+      "edition", "organization", "series", "version", "isbn", "publisher", "type",
+      "pagetotal",
+    ],
+  )
+  assert_eq(
+    EntryType::requirements(MastersThesis).optional,
+    default_option + ["type"],
+  )
+  assert_eq(
+    EntryType::requirements(Proceedings).optional,
+    default_option +
+    [
+      "number", "organization", "series", "volume", "volumes", "part", "publisher",
+      "maintitle", "mainsubtitle", "maintitleaddon", "isbn", "publisher", "pagetotal",
+    ],
+  )
+  assert_eq(
+    EntryType::requirements(TechReport).optional,
+    default_option + ["number", "type"],
+  )
+  assert_eq(EntryType::requirements(Unpublished).optional, [
+    "titleadddon", "subtitle", "url", "urldate", "doi", "eprint", "eprintclass",
+    "eprinttype", "pubstate", "language", "addendum", "isbn", "howpublished",
+  ])
+  assert_eq(
+    EntryType::requirements(MvBook).optional,
+    default_option +
+    [
+      "annotator", "commentator", "translator", "origlanguage", "afterword", "foreword",
+      "introduction", "edition", "number", "series", "volumes", "isbn", "publisher",
+      "pagetotal",
+    ],
+  )
+  assert_eq(
+    EntryType::requirements(Periodical).optional,
+    default_option +
+    [
+      "issue", "issuetitle", "issuesubtitle", "number", "series", "volume", "issn",
+    ],
+  )
+  assert_eq(
+    EntryType::requirements(Collection).optional,
+    default_option +
+    [
+      "annotator", "commentator", "translator", "origlanguage", "afterword", "foreword",
+      "introduction", "maintitle", "mainsubtitle", "maintitleaddon", "edition", "number",
+      "series", "part", "volume", "volumes", "isbn", "publisher", "pagetotal",
+    ],
+  )
+  assert_eq(
+    EntryType::requirements(MvCollection).optional,
+    default_option +
+    [
+      "annotator", "commentator", "translator", "origlanguage", "afterword", "foreword",
+      "introduction", "edition", "number", "series", "volumes", "isbn", "publisher",
+      "pagetotal",
+    ],
+  )
+  assert_eq(
+    EntryType::requirements(Report).optional,
+    default_option + ["number", "version", "isrn", "pagetotal"],
+  )
+  assert_eq(
+    EntryType::requirements(Patent).optional,
+    default_option + ["holder", "type"],
+  )
+  assert_eq(EntryType::requirements(Online).optional, [
+    "note", "titleadddon", "subtitle", "urldate", "pubstate", "language", "addendum",
+    "organization",
+  ])
+  assert_eq(
+    EntryType::requirements(Dataset).optional,
+    default_option +
+    [
+      "edition", "type", "series", "number", "version", "organization", "publisher",
+    ],
+  )
+  ///
+  assert_eq(
+    EntryType::requirements(PhdThesis),
+    EntryType::requirements(MastersThesis),
+  )
+  assert_eq(
+    EntryType::requirements(SuppPeriodical),
+    EntryType::requirements(Article),
+  )
+  assert_eq(
+    EntryType::requirements(BookInBook),
+    EntryType::requirements(InBook),
+  )
+  assert_eq(EntryType::requirements(SuppBook), EntryType::requirements(InBook))
+  assert_eq(
+    EntryType::requirements(SuppCollection),
+    EntryType::requirements(InCollection),
+  )
+  assert_eq(
+    EntryType::requirements(Reference),
+    EntryType::requirements(Collection),
+  )
+  assert_eq(
+    EntryType::requirements(MvReference),
+    EntryType::requirements(MvCollection),
+  )
+  assert_eq(
+    EntryType::requirements(InReference),
+    EntryType::requirements(InCollection),
+  )
+  assert_eq(EntryType::requirements(Software), EntryType::requirements(Misc))
+  assert_eq(EntryType::requirements(Set).optional, [])
+  assert_eq(EntryType::requirements(Set).required, ["entryset"])
+  assert_eq(
+    EntryType::requirements(Unknown("unknown")),
+    EntryType::requirements(MvCollection),
+  )
 }

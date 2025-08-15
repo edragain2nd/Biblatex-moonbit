@@ -46,6 +46,7 @@ fn Person::parse_extended_name_format(chunks : Chunks) -> Person {
 }
 
 ///|
+/// /// Constructs new person from bibtex.
 fn Person::parse_bibtex(chunks : Chunks) -> Person {
   let num_commas = count_num_char(chunks, ',')
   match num_commas {
@@ -239,9 +240,7 @@ pub impl Type for ArrayPerson with from_chunks(chunks) {
 ///|
 pub impl Type for ArrayPerson with to_chunks(self) {
   ArrayChunks::to_chunks(
-    self
-    .inner()
-    .map(p => {
+    self.0.map(p => {
       let prefix = if p.prefix.get_char(0) is Some(c) {
         // FIXME: moonbit only surpport is_ascii_uppercase
         if c.is_ascii_uppercase() {
@@ -293,7 +292,7 @@ test "test_list_of_names" {
   let names = "Johannes Gutenberg and Aldus Manutius and Claude Garamond"
   let people = [Spanned::detached(Chunk::Normal(names))]
   let people : ArrayPerson = Type::from_chunks(people)
-  let people : Array[Person] = people.inner()
+  let people : Array[Person] = people.0
   assert_eq(people.length(), 3)
   assert_eq(people[0].name, "Gutenberg")
   assert_eq(people[0].prefix, "")
@@ -311,17 +310,17 @@ test "test_list_of_names_multilines" {
   let names = "Johannes Gutenberg and\nAldus Manutius and\nClaude Garamond"
   let people = [Spanned::detached(Chunk::Normal(names))]
   let people1 : ArrayPerson = Type::from_chunks(people)
-  let people1 = people1.inner()
+  let people1 = people1.0
   assert_eq(people1.length(), 3)
   let names = "Johannes Gutenberg\nand\nAldus Manutius\nand\nClaude Garamond"
   let people = [Spanned::detached(Chunk::Normal(names))]
   let people2 : ArrayPerson = Type::from_chunks(people)
-  let people2 = people2.inner()
+  let people2 = people2.0
   assert_eq(people2.length(), 3)
   let names = "Johannes Gutenberg\nand\nAldus Manutius and\nClaude Garamond"
   let people = [Spanned::detached(Chunk::Normal(names))]
   let people3 : ArrayPerson = Type::from_chunks(people)
-  let people3 = people3.inner()
+  let people3 = people3.0
   assert_eq(people3.length(), 3)
   assert_eq(people1, people2)
   assert_eq(people2, people3)
@@ -341,7 +340,7 @@ test "test_leading_and" {
   let names = "and Gutenberg, Johannes and\nAldus Manutius and\nClaude Garamond"
   let people = [Spanned::detached(Chunk::Normal(names))]
   let people : ArrayPerson = Type::from_chunks(people)
-  let people = people.inner()
+  let people = people.0
   assert_eq(people.length(), 3)
   assert_eq(people[0].name, "Gutenberg")
   assert_eq(people[0].prefix, "and")
@@ -353,7 +352,7 @@ test "test_trailing_and" {
   let names = "Johannes Gutenberg and\nAldus Manutius and\nClaude Garamond and"
   let people = [Spanned::detached(Chunk::Normal(names))]
   let people : ArrayPerson = Type::from_chunks(people)
-  let people = people.inner()
+  let people = people.0
   assert_eq(people.length(), 3)
   assert_eq(people[2].name, "and")
   assert_eq(people[2].prefix, "")
@@ -365,7 +364,7 @@ test "test_consecutive_and" {
   let names = "Johannes Gutenberg and and\nAldus Manutius and\nClaude Garamond"
   let people = [Spanned::detached(Chunk::Normal(names))]
   let people : ArrayPerson = Type::from_chunks(people)
-  let people = people.inner()
+  let people = people.0
   assert_eq(people.length(), 4)
   assert_eq(people[1].name, "")
   assert_eq(people[1].prefix, "")
@@ -373,7 +372,7 @@ test "test_consecutive_and" {
   let names = "Johannes Gutenberg and and and\nAldus Manutius and\nClaude Garamond"
   let people = [Spanned::detached(Chunk::Normal(names))]
   let people : ArrayPerson = Type::from_chunks(people)
-  let people = people.inner()
+  let people = people.0
   assert_eq(people.length(), 5)
   assert_eq(people[1].name, "")
   assert_eq(people[1].prefix, "")
@@ -388,7 +387,7 @@ test "test_name_with_and_inside" {
   let names = "Johannes anderson Gutenberg and Claudeand Garamond and Aanderson Manutius"
   let people = [Spanned::detached(Chunk::Normal(names))]
   let people : ArrayPerson = Type::from_chunks(people)
-  let people = people.inner()
+  let people = people.0
   assert_eq(people.length(), 3)
   assert_eq(people[0].name, "Gutenberg")
   assert_eq(people[0].prefix, "anderson")
@@ -408,7 +407,7 @@ test "test_verbatim" {
     Spanned::detached(Chunk::Normal(" ")),
     Spanned::detached(Chunk::Verbatim("Gutenberg")),
   ]
-  let people = ArrayPerson::from_chunks(people).inner()
+  let people = ArrayPerson::from_chunks(people).0
   assert_eq(people.length(), 1)
   assert_eq(people[0].name, "Gutenberg")
   assert_eq(people[0].given_name, "Johannes")
@@ -421,7 +420,7 @@ test "test_verbatim" {
     Spanned::detached(Chunk::Normal(" ")),
     Spanned::detached(Chunk::Verbatim("Aldus")),
   ]
-  let people = ArrayPerson::from_chunks(people).inner()
+  let people = ArrayPerson::from_chunks(people).0
   assert_eq(people.length(), 2)
   assert_eq(people[0].name, "Gutenberg")
   assert_eq(people[0].given_name, "Johannes")
@@ -433,7 +432,7 @@ test "test_verbatim" {
     Spanned::detached(Chunk::Verbatim("Gutenberg".to_string())),
     Spanned::detached(Chunk::Normal(" and Manutius Aldus".to_string())),
   ]
-  let people = ArrayPerson::from_chunks(people).inner()
+  let people = ArrayPerson::from_chunks(people).0
   assert_eq(people.length(), 2)
   assert_eq(people[0].name, "Gutenberg")
   assert_eq(people[0].given_name, "Johannes")
@@ -597,7 +596,7 @@ test "test_person_extended_name_format" {
       n("given=Hans, family=Harman and given=Simon, prefix=de, family=Beumont"),
     ),
   ]
-  let people = ArrayPerson::from_chunks(people).inner()
+  let people = ArrayPerson::from_chunks(people).0
   assert_eq(people.length(), 2)
   assert_eq(people[0].name, "Harman")
   assert_eq(people[0].prefix, "")
@@ -612,7 +611,7 @@ test "test_person_extended_name_format" {
   let people = [
     Spanned::zero(n("Hans Harman and given=Simon, prefix=de, family=Beumont")),
   ]
-  let people = ArrayPerson::from_chunks(people).inner()
+  let people = ArrayPerson::from_chunks(people).0
   assert_eq(people.length(), 2)
   assert_eq(people[0].name, "Harman")
   assert_eq(people[0].prefix, "")
@@ -631,7 +630,7 @@ test "test_person_extended_name_format" {
       ),
     ),
   ]
-  let people = ArrayPerson::from_chunks(people).inner()
+  let people = ArrayPerson::from_chunks(people).0
   assert_eq(people.length(), 3)
   assert_eq(people[0].name, "")
   assert_eq(people[0].prefix, "")

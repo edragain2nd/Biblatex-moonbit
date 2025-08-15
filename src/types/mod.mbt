@@ -136,7 +136,7 @@ pub impl Type for ArrayChunks with from_chunks(chunk) {
 pub impl Type for ArrayChunks with to_chunks(self) {
   let merged = []
   let mut first = true
-  for chunk in self.inner() {
+  for chunk in self.0 {
     if first {
       first = false
     } else {
@@ -163,8 +163,7 @@ pub impl Type for ArrayString with from_chunks(chunks) {
 
 ///|
 pub impl Type for ArrayString with to_chunks(self) {
-  let chunks = self
-    .inner()
+  let chunks = self.0
     .iter()
     .map(s => Spanned::detached(Chunk::Normal(s)))
     .collect()
@@ -423,7 +422,7 @@ pub(all) struct Range {
 pub impl Type for Range with from_chunks(chunks) {
   let span = ChunkExt::span(chunks)
   let array_range : ArrayRange = parse_chunks(chunks)
-  let range = array_range.inner().get(0)
+  let range = array_range.0.get(0)
   if range is Some(range) {
     range
   } else {
@@ -491,12 +490,10 @@ pub impl Type for ArrayRange with from_chunks(chunks) {
 
 ///|
 pub impl Type for ArrayRange with to_chunks(self) {
-  let chunks = self
-    .inner()
-    .map(range => {
-      let str = "\{range.start}-\{range.end}"
-      Spanned::detached(Chunk::Normal(str))
-    })
+  let chunks = self.0.map(range => {
+    let str = "\{range.start}-\{range.end}"
+    Spanned::detached(Chunk::Normal(str))
+  })
   join_chunk_list(chunks, ",")
 }
 
