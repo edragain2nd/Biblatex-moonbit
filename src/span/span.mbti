@@ -3,6 +3,8 @@ package "edragain2nd/biblatex/span"
 
 // Values
 
+// Errors
+
 // Types and methods
 pub(all) struct Span {
   start : Int

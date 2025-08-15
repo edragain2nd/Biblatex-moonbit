@@ -2,7 +2,7 @@
   "name": "edragain2nd/biblatex",
   "version": "0.1.0",
   "deps": {
-    "edragain2nd/unscanny": "0.1.1",
+    "edragain2nd/unscanny": "0.1.2",
     "edragain2nd/compose": "0.1.0",
     "moonbitlang/x": "0.4.31"
   },
